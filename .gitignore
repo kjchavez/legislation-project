@@ -1,2 +1,7 @@
 # Generated files
 uscode_text/
+*.pyc
+*.txt
+
+# Secret files
+apikeys.yaml
