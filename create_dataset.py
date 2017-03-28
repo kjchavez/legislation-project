@@ -1,20 +1,21 @@
-from tokenize import tokenize
+from preprocess.tokenize import tokenize
 import glob
 from preprocess.constants import *
 from vocab import Vocabulary
 
 
 def _text_to_word_ids(text, vocab):
-    return [vocab.get(t) for t in tokenize(text)]
+    tokens = tokenize(text)
+    return [vocab.get(t) for t in tokens]
 
 
 def _file_to_word_ids(filename, vocab, sof_token=START_OF_FILE,
                       eof_token=END_OF_FILE):
 
     with open(filename) as fp:
-        word_ids = _text_to_word_ids(fp.read())
+        word_ids = _text_to_word_ids(fp.read(), vocab)
 
-    return [vocab[sof_token]] + word_ids + [vocab[eof_token]]
+    return [vocab.get(sof_token)] + word_ids + [vocab.get(eof_token)]
 
 
 class Preprocessor(object):

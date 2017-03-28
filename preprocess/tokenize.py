@@ -1,3 +1,5 @@
+# coding=utf-8
+
 """ Function to 'clean' and tokenize a string for use in legislation-project
     models.
 
@@ -33,4 +35,4 @@ REPLACEMENTS = {
 }
 
 def tokenize(string):
-    return word_tokenize(multireplace(string, REPLACEMENTS))
+    return word_tokenize(multireplace(string, REPLACEMENTS).decode('utf-8'))

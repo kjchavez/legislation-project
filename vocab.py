@@ -14,7 +14,7 @@ class Vocabulary(object):
 
     def get(self, token):
         """ Returns id of token, or id for <UNK> if token is unknown. """
-        return self.word_to_id.get(key,
+        return self.word_to_id.get(token,
                 self.word_to_id[Vocabulary.UNKNOWN])
 
     def size(self):
