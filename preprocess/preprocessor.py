@@ -1,6 +1,6 @@
-from preprocess.tokenize import tokenize
+from tokenizer import tokenize
 import glob
-from preprocess.constants import *
+from constants import *
 from vocab import Vocabulary
 
 

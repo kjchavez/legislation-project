@@ -1,4 +1,3 @@
-
 class Vocabulary(object):
     UNKNOWN = "<UNK>"
 
