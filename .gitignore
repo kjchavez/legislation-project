@@ -1,5 +1,6 @@
 # Generated files
 uscode_text/
+output/
 *.pyc
 *.txt
 

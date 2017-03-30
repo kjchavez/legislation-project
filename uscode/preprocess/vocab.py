@@ -22,7 +22,10 @@ class Vocabulary(object):
     def saveto(self, filename):
         with open(filename, 'w') as fp:
             for word in self.id_to_word:
-                print >> fp, word.encode('utf8')
+                try:
+                    print >> fp, word
+                except:
+                    print "Having issues with", word
 
     def get(self, token):
         """ Returns id of token, or id for <oov> if token is unknown. """
