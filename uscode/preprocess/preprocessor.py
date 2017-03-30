@@ -31,14 +31,11 @@ class Preprocessor(object):
                                  eof_token=END_OF_TITLE)
 
 
-    def filepattern_to_word_ids(self, filepattern):
+    def titles_to_word_ids(self, filepattern):
         ids = []
         for filename in glob.glob(filepattern):
-            ids.extend(_file_to_word_ids(filename, vocab,
-                                         sof_token=sof_token,
-                                         eof_token=eof_token))
+            ids.extend(_file_to_word_ids(filename, self.vocab,
+                                         sof_token=START_OF_TITLE,
+                                         eof_token=END_OF_TITLE))
 
         return ids
-
-
-
