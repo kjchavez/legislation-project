@@ -1,0 +1,4 @@
+embedding_dim: 100
+batch_size: 32
+unroll_length: 50
+learning_rate: 0.0001

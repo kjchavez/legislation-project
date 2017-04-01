@@ -3,6 +3,7 @@ uscode_text/
 output/
 *.pyc
 *.txt
+*~
 
 # Secret files
 apikeys.yaml
