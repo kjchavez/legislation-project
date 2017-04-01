@@ -1,7 +1,37 @@
+"""
+    Lightweight wrapper around the ProPublica Congress API.
+
+    NOTICE: If you are using Python 2.7.6, you may encounter SSL errors with
+    the 'requests' module. You should either upgrade to 2.7.9 (if possible) or
+    downgrade the 'requests' module to 2.5.3
+
+    pip install requests==2.5.3
+"""
 import requests
 import itertools
 
-BASE_URL = "http://congress.api.sunlightfoundation.com/"
+class CongressApi(object):
+    BASE_URL = "https://api.propublica.org/congress/v1/"
+    ENV_VAR = 'PROPUBLICA_CONGRESS_API_KEY'
+
+    def __init__(self, api_key):
+        self.headers = {}
+        self.headers['X-API-Key'] = api_key
+
+
+    def get(self, url_suffix):
+        """ Get data from arbitrary endpoint of Congress API.
+
+        This is available for maximum flexibility, but you will usually want to
+        use one of the other, strongly-typed functions.
+        """
+        response = requests.get(CongressApi.BASE_URL+url_suffix, headers=self.headers)
+        json_res = response.json()
+        if json_res['status'] == 'OK' and 'result' in json_res:
+            return json_res['result']
+
+        return json_res['status']
+
 
 bill_filters = [
     'bill_id',
