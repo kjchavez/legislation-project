@@ -2,6 +2,8 @@ import tensorflow as tf
 import reader
 import math
 
+ModeKeys = tf.contrib.learn.ModeKeys
+
 def model_fn(features, targets, mode, params):
     cell = tf.contrib.rnn.BasicLSTMCell(
             params['embedding_dim'], forget_bias=0.0, state_is_tuple=True)
@@ -28,11 +30,15 @@ def model_fn(features, targets, mode, params):
                         params['vocab_size']])
 
     predictions = tf.arg_max(logits, 2)
-    if mode == tf.contrib.learn.ModeKeys.TRAIN:
+    loss = None
+    train_op = None
+    if mode in (ModeKeys.TRAIN, ModeKeys.EVAL):
         loss = tf.contrib.seq2seq.sequence_loss(logits, targets,
                 tf.ones_like(targets, dtype=tf.float32),
                 average_across_timesteps=True,
                 average_across_batch=True)
+
+    if mode == ModeKeys.TRAIN:
         lr = params['learning_rate']
         max_grad_norm = 5  # params['max_grad_norm']
         tvars = tf.trainable_variables()
@@ -42,10 +48,6 @@ def model_fn(features, targets, mode, params):
         train_op = optimizer.apply_gradients(
             zip(grads, tvars),
             global_step=tf.contrib.framework.get_or_create_global_step())
-
-    else:
-        loss = None
-        train_op = None
 
     # Return predictions/loss/train_op/eval_metric_ops
     return tf.contrib.learn.ModelFnOps(mode, predictions, loss, train_op, {})
