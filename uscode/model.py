@@ -29,9 +29,11 @@ def model_fn(features, targets, mode, params):
     logits = tf.reshape(logits, [params['batch_size'], params['unroll_length'],
                         params['vocab_size']])
 
-    predictions = tf.arg_max(logits, 2)
+    predictions = {}
+    predictions['tokens'] = tf.arg_max(logits, 2)
     loss = None
     train_op = None
+    eval_metric_ops = {}
     if mode in (ModeKeys.TRAIN, ModeKeys.EVAL):
         loss = tf.contrib.seq2seq.sequence_loss(logits, targets,
                 tf.ones_like(targets, dtype=tf.float32),
@@ -49,8 +51,20 @@ def model_fn(features, targets, mode, params):
             zip(grads, tvars),
             global_step=tf.contrib.framework.get_or_create_global_step())
 
+    # Add summaries of helpful values.
+    if mode == ModeKeys.TRAIN:
+        tf.summary.scalar('loss', loss)
+        for var in tvars:
+            tf.summary.histogram(var.name, var)
+
+        grads = list(zip(grads, tvars))
+        for grad, var in grads:
+            tf.summary.histogram(var.name + '/gradient', grad)
+
+
     # Return predictions/loss/train_op/eval_metric_ops
-    return tf.contrib.learn.ModelFnOps(mode, predictions, loss, train_op, {})
+    return tf.contrib.learn.ModelFnOps(mode, predictions, loss, train_op,
+                                       eval_metric_ops)
 
 
 def sanity_check():

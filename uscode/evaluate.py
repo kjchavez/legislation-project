@@ -19,11 +19,17 @@ def parse_args():
     parser.add_argument("--data_path",
         default="/home/kevin/projects/legislation-project/uscode/processed-data")
     parser.add_argument("--checkpoint", '-c', default=None)
+    parser.add_argument("--steps", '-s', type=int, default=None)
 
     parser.add_argument("--hyperparams", default=None,
                         help="yaml file of hyperparameters")
 
     return parser.parse_args()
+
+def _print_results(results_dict):
+    print "=============== RESULTS ================="
+    for key, value in results_dict.items():
+        print key.ljust(20), value
 
 
 def main():
@@ -33,6 +39,7 @@ def main():
     if args.hyperparams:
         with open(args.hyperparams) as fp:
             params = yaml.load(fp)
+
     params['vocab_size'] = vocab.size()
 
     estimator = tf.contrib.learn.Estimator(
@@ -44,10 +51,15 @@ def main():
         return reader.example_producer(valid, params['batch_size'],
                                        params['unroll_length'])
 
-    steps = len(valid) / params['batch_size']
+    if not args.steps:
+        args.steps = len(valid) / params['batch_size']
+
     # Note the results of evaluation are saved to <model_dir>/eval
-    estimator.evaluate(input_fn=valid_input_fn, steps=steps,
-                       checkpoint_path=args.checkpoint)
+    results = estimator.evaluate(input_fn=valid_input_fn,
+                                 steps=args.steps,
+                                 checkpoint_path=args.checkpoint)
+
+    _print_results(results)
 
 
 if __name__ == "__main__":
