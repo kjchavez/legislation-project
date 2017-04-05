@@ -11,9 +11,12 @@ def model_fn(features, targets, mode, params):
     zero_state = cell.zero_state(params['batch_size'], tf.float32)
 
     initial_c_state = tf.placeholder_with_default(zero_state.c,
-                                                  zero_state.c.get_shape());
+                                                  zero_state.c.get_shape(),
+                                                  name="init_c_state");
+    print initial_c_state.name
     initial_h_state = tf.placeholder_with_default(zero_state.h,
-                                                  zero_state.h.get_shape());
+                                                  zero_state.h.get_shape(),
+                                                  name="init_h_state");
     initial_state = tf.contrib.rnn.LSTMStateTuple(initial_c_state,
                                                   initial_h_state)
 
@@ -139,8 +142,12 @@ def sanity_check():
     with tf.Session() as sess:
         sess.run(init_op)
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+        feed_dict = {}
+        feed_dict['init_c_state:0'] = np.random.randn(4, 8)
+        feed_dict['init_h_state:0'] = np.random.randn(4, 8)
         _x, _y, _z, probs = sess.run([x, y, z.loss, \
-                                      z.predictions['probability']])
+                                      z.predictions['probability']],
+                                      feed_dict=feed_dict)
 
     coord.request_stop()
     coord.join(threads)
