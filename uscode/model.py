@@ -8,7 +8,18 @@ def model_fn(features, targets, mode, params):
     cell = tf.contrib.rnn.BasicLSTMCell(
             params['embedding_dim'], forget_bias=0.0, state_is_tuple=True)
 
-    initial_state = cell.zero_state(params['batch_size'], tf.float32)
+    zero_state = cell.zero_state(params['batch_size'], tf.float32)
+
+    initial_c_state = tf.placeholder_with_default(zero_state.c,
+                                                  zero_state.c.get_shape());
+    initial_h_state = tf.placeholder_with_default(zero_state.h,
+                                                  zero_state.h.get_shape());
+    initial_state = tf.contrib.rnn.LSTMStateTuple(initial_c_state,
+                                                  initial_h_state)
+
+    print "Init state shapes:", initial_c_state.get_shape(), \
+                                initial_h_state.get_shape()
+
     embedding = tf.get_variable("embedding", [params['vocab_size'], params['embedding_dim']],
                                 dtype=tf.float32)
 
@@ -18,8 +29,20 @@ def model_fn(features, targets, mode, params):
     # Note: This always feeds the 'true' next item in the sequence as input
     # into the RNN. We may want to have a mode where we feed the predicted
     # token as input.
+    #
+    # To use this model to generate text, we can do one of a few things:
+    # 1. Set the unroll length to 1, and only generate a single 'token' at a
+    #    time. We will have to add an 'initial_token' placeholder for this. And
+    #    it will be slow...
+    #    http://stackoverflow.com/questions/36609920/tensorflow-using-lstms-for-generating-text 
+    #    http://deeplearningathome.com/2016/10/Text-generation-using-deep-recurrent-neural-networks.html 
+    #
+    # 2. Use raw_rnn instead of static_rnn here -- with a more customizable
+    #    loop fn that can be different at generation time.
     outputs, state = tf.contrib.rnn.static_rnn(cell, inputs,
                                initial_state=initial_state)
+
+
     output = tf.stack(outputs)
     output = tf.reshape(output, [-1, params['embedding_dim']])
     softmax_w = tf.get_variable(
@@ -31,6 +54,8 @@ def model_fn(features, targets, mode, params):
 
     predictions = {}
     predictions['tokens'] = tf.arg_max(logits, 2)
+    predictions['probability'] = tf.nn.softmax(logits)
+    predictions['final_state'] = state
     loss = None
     train_op = None
     eval_metric_ops = {}
@@ -67,7 +92,27 @@ def model_fn(features, targets, mode, params):
                                        eval_metric_ops)
 
 
+
+def sample(distribution, temp=1.0):
+    """ Samples from a distribution with a given temperature.
+
+    Args:
+        distribution: an M x N numpy array representing M distributions over N
+                      possible values.
+    """
+    M, N = distribution.shape
+    coef = 1.0 / temp
+    dist = np.power(distribution, coef)
+    dist /= np.sum(dist, axis=1, keepdims=True)
+    values = np.empty(M)
+    for i in xrange(M):
+        values[i] = np.random.choice(xrange(N), p=dist[i])
+
+    return values
+
 def sanity_check():
+    import numpy as np
+    from sample import sample
     print("============== RUNNING SANITY CHECK =====================")
     data_path = "/home/kevin/projects/legislation-project/uscode/processed-data"
 
@@ -94,13 +139,19 @@ def sanity_check():
     with tf.Session() as sess:
         sess.run(init_op)
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-        _x, _y, _z = sess.run([x, y, z.loss])
+        _x, _y, _z, probs = sess.run([x, y, z.loss, \
+                                      z.predictions['probability']])
 
     coord.request_stop()
     coord.join(threads)
 
     print "Average loss for rand init model: ", _z
     print "Should be around: ", math.log(params['vocab_size'])
+    print "Probability distribution:", probs
+    print "Shape of probabilities:", probs.shape
+    print "A single sample (low T): ", sample(probs[:, 0, :], temp=0.1)
+    print "Argmax                 : ", np.argmax(probs[:, 0, :], axis=1)
+    print "A single sample (T=1)  : ", sample(probs[:, 0, :], temp=1.0)
 
 if __name__ == "__main__":
     sanity_check()
