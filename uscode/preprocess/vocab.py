@@ -32,6 +32,9 @@ class Vocabulary(object):
         return self.word_to_id.get(token,
                 self.word_to_id[Vocabulary.OUT_OF_VOCABULARY])
 
+    def get_token(self, idx):
+        return self.id_to_word[idx]
+
     def size(self):
         return len(self.word_to_id)
 

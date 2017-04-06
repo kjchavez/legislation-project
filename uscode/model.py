@@ -5,6 +5,8 @@ import math
 ModeKeys = tf.contrib.learn.ModeKeys
 
 def model_fn(features, targets, mode, params):
+    tokens = features['tokens']
+
     cell = tf.contrib.rnn.BasicLSTMCell(
             params['embedding_dim'], forget_bias=0.0, state_is_tuple=True)
 
@@ -13,20 +15,15 @@ def model_fn(features, targets, mode, params):
     initial_c_state = tf.placeholder_with_default(zero_state.c,
                                                   zero_state.c.get_shape(),
                                                   name="init_c_state");
-    print initial_c_state.name
     initial_h_state = tf.placeholder_with_default(zero_state.h,
                                                   zero_state.h.get_shape(),
                                                   name="init_h_state");
     initial_state = tf.contrib.rnn.LSTMStateTuple(initial_c_state,
                                                   initial_h_state)
-
-    print "Init state shapes:", initial_c_state.get_shape(), \
-                                initial_h_state.get_shape()
-
     embedding = tf.get_variable("embedding", [params['vocab_size'], params['embedding_dim']],
                                 dtype=tf.float32)
 
-    inputs = tf.nn.embedding_lookup(embedding, features)
+    inputs = tf.nn.embedding_lookup(embedding, tokens)
     inputs = tf.unstack(inputs, num=params['unroll_length'], axis=1)
 
     # Note: This always feeds the 'true' next item in the sequence as input

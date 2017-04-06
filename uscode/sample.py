@@ -12,7 +12,7 @@ def sample(distribution, temp=1.0):
     coef = 1.0 / temp
     dist = np.power(distribution, coef)
     dist /= np.sum(dist, axis=1, keepdims=True)
-    values = np.empty(M)
+    values = np.empty(M, dtype=np.int32)
     for i in xrange(M):
         values[i] = np.random.choice(xrange(N), p=dist[i, :])
 

@@ -4,6 +4,7 @@ output/
 *.pyc
 *.txt
 *~
+uscode/processed-data/
 
 # Secret files
 apikeys.yaml

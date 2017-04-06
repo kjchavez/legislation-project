@@ -18,6 +18,11 @@ def _raw_data(datadir):
     return _load_ids_from_file(train_file), _load_ids_from_file(valid_file), \
            _load_ids_from_file(test_file), Vocabulary.fromfile(vocab_file)
 
+def load_vocab(data_path):
+    vocab_file = join(data_path, 'vocabulary.txt')
+    return Vocabulary.fromfile(vocab_file)
+
+
 def example_producer(raw_data, batch_size, num_steps, name=None):
   """Iterate on the raw token ids.
 
@@ -60,4 +65,4 @@ def example_producer(raw_data, batch_size, num_steps, name=None):
     y = tf.strided_slice(data, [0, i * num_steps + 1],
                          [batch_size, (i + 1) * num_steps + 1])
     y.set_shape([batch_size, num_steps])
-    return x, y
+    return {'tokens': x}, y
