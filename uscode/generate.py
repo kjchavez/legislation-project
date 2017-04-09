@@ -18,7 +18,7 @@ def parse_args():
     parser.add_argument("--model_checkpoint",
                         default="/tmp/legislation/model.ckpt")
     parser.add_argument("--data_path",
-        default="/home/kevin/projects/legislation-project/uscode/processed-data")
+        default="/home/kevin/projects/legislation-project/output")
     parser.add_argument("--temp", '-T', type=float, default=1.0)
     parser.add_argument("--hyperparams", default=None,
                         help="yaml file of hyperparameters")
