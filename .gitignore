@@ -1,6 +1,7 @@
 # Generated files
 uscode_text/
 output/
+.ipynb_checkpoints/
 *.pyc
 *.txt
 *~
