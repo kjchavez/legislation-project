@@ -1,4 +1,5 @@
 import tensorflow as tf
+from tensorflow.python import debug as tf_debug
 import reader
 from model import model_fn
 import argparse
@@ -15,8 +16,9 @@ def parse_args():
                         help="If true, clears any data in 'model_dir' before "
                              "training")
     parser.add_argument("--data_path",
-        default="/home/kevin/projects/legislation-project/uscode/processed-data")
+        default="/home/kevin/projects/legislation-project/output")
     parser.add_argument("--train_steps", type=int, default=None)
+    parser.add_argument("--debug", action='store_true')
 
     # Hyperparameters can be set individually via commandline args...
     parser.add_argument("--batch_size", type=int, default=4)
@@ -71,4 +73,13 @@ def train_input_fn():
     return reader.example_producer(train, params['batch_size'],
                                    params['unroll_length'])
 
-estimator.fit(input_fn=train_input_fn, steps=args.train_steps)
+
+hooks = []
+if args.debug:
+    debug_hook = tf_debug.LocalCLIDebugHook()
+    debug_hook.add_tensor_filter("has_inf_or_nan", tf_debug.has_inf_or_nan)
+    hooks.append(debug_hook)
+
+estimator.fit(input_fn=train_input_fn,
+              steps=args.train_steps,
+              monitors=hooks)

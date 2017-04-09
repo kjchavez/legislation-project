@@ -16,11 +16,11 @@ import glob
 import os
 import random
 from vocab import Vocabulary
-# from tokenizer import tokenize
+from tokenizer import tokenize
 
 # For testing fast tokenization
-def tokenize(text):
-    return text.split()
+# def tokenize(text):
+#     return text.split()
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -35,9 +35,6 @@ def parse_args():
 
     return parser.parse_args()
 
-
-def _files_to_word_ids(vocab, files):
-    return [1, 2, 3]
 
 def _get_file_splits(filepattern, valid=0.2, test=0.1):
     """ Returns random train/valid/test splits at the file level. """
@@ -118,6 +115,8 @@ def main():
         print >> fp, '\n'.join(valid_files)
         print >> fp, "\nTest files:"
         print >> fp, '\n'.join(test_files)
+        print >> fp, "\nArgs for generate_dataset.py:"
+        print >> fp, args
 
 if __name__ == "__main__":
     main()

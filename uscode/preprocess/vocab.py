@@ -1,3 +1,4 @@
+import codecs
 import collections
 import glob
 
@@ -20,12 +21,10 @@ class Vocabulary(object):
             idx += 1
 
     def saveto(self, filename):
-        with open(filename, 'w') as fp:
+        with codecs.open(filename, 'w', encoding='utf-8') as fp:
             for word in self.id_to_word:
-                try:
-                    print >> fp, word
-                except:
-                    print "Having issues with", word
+                fp.write(word)
+                fp.write('\n')
 
     def get(self, token):
         """ Returns id of token, or id for <oov> if token is unknown. """

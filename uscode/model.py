@@ -29,16 +29,6 @@ def model_fn(features, targets, mode, params):
     # Note: This always feeds the 'true' next item in the sequence as input
     # into the RNN. We may want to have a mode where we feed the predicted
     # token as input.
-    #
-    # To use this model to generate text, we can do one of a few things:
-    # 1. Set the unroll length to 1, and only generate a single 'token' at a
-    #    time. We will have to add an 'initial_token' placeholder for this. And
-    #    it will be slow...
-    #    http://stackoverflow.com/questions/36609920/tensorflow-using-lstms-for-generating-text 
-    #    http://deeplearningathome.com/2016/10/Text-generation-using-deep-recurrent-neural-networks.html 
-    #
-    # 2. Use raw_rnn instead of static_rnn here -- with a more customizable
-    #    loop fn that can be different at generation time.
     outputs, state = tf.contrib.rnn.static_rnn(cell, inputs,
                                initial_state=initial_state)
 
@@ -46,8 +36,10 @@ def model_fn(features, targets, mode, params):
     output = tf.stack(outputs)
     output = tf.reshape(output, [-1, params['embedding_dim']])
     softmax_w = tf.get_variable(
-        "softmax_w", [params['embedding_dim'], params['vocab_size']], dtype=tf.float32)
-    softmax_b = tf.get_variable("softmax_b", [params['vocab_size']], dtype=tf.float32)
+        "softmax_w", [params['embedding_dim'], params['vocab_size']],
+        initializer=tf.random_normal_initializer() ,dtype=tf.float32)
+    softmax_b = tf.get_variable("softmax_b", [params['vocab_size']],
+            initializer=tf.zeros_initializer(), dtype=tf.float32)
     logits = tf.matmul(output, softmax_w) + softmax_b
     logits = tf.reshape(logits, [params['batch_size'], params['unroll_length'],
                         params['vocab_size']])
@@ -67,11 +59,12 @@ def model_fn(features, targets, mode, params):
 
     if mode == ModeKeys.TRAIN:
         lr = params['learning_rate']
-        max_grad_norm = 5  # params['max_grad_norm']
+        max_grad_norm = 1  # params['max_grad_norm']
         tvars = tf.trainable_variables()
         grads, _ = tf.clip_by_global_norm(tf.gradients(loss, tvars),
                                           max_grad_norm)
         optimizer = tf.train.GradientDescentOptimizer(lr)
+
         train_op = optimizer.apply_gradients(
             zip(grads, tvars),
             global_step=tf.contrib.framework.get_or_create_global_step())
@@ -83,8 +76,10 @@ def model_fn(features, targets, mode, params):
             tf.summary.histogram(var.name, var)
 
         grads = list(zip(grads, tvars))
+        print "Vars:"
         for grad, var in grads:
-            tf.summary.histogram(var.name + '/gradient', grad)
+            print var.name
+            # tf.summary.histogram(var.name + '/gradient', grad)
 
 
     # Return predictions/loss/train_op/eval_metric_ops
@@ -114,23 +109,23 @@ def sanity_check():
     import numpy as np
     from sample import sample
     print("============== RUNNING SANITY CHECK =====================")
-    data_path = "/home/kevin/projects/legislation-project/uscode/processed-data"
+    data_path = "/home/kevin/projects/legislation-project/output"
 
-    BATCH_SIZE = 4
+    BATCH_SIZE = 32
     UNROLL_LEN = 10
 
     train, valid, test, vocab = reader._raw_data(data_path)
 
     params = {}
     params['vocab_size'] = vocab.size()
-    params['embedding_dim'] = 8
+    params['embedding_dim'] = 100
     params['batch_size'] = BATCH_SIZE
     params['unroll_length'] = UNROLL_LEN
     params['learning_rate'] = 0.0001
 
     x, y = reader.example_producer(train, BATCH_SIZE, UNROLL_LEN)
     z = model_fn(x, y, tf.contrib.learn.ModeKeys.TRAIN,
-                 {'vocab_size' : vocab.size(), 'embedding_dim': 8,
+                 {'vocab_size' : vocab.size(), 'embedding_dim': 100,
                   'batch_size': BATCH_SIZE, 'unroll_length': UNROLL_LEN,
                   'learning_rate': 0.0001})
     init_op = tf.global_variables_initializer()
@@ -140,8 +135,10 @@ def sanity_check():
         sess.run(init_op)
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
         feed_dict = {}
-        feed_dict['init_c_state:0'] = np.random.randn(4, 8)
-        feed_dict['init_h_state:0'] = np.random.randn(4, 8)
+        feed_dict['init_c_state:0'] = np.random.randn(BATCH_SIZE,
+                                                      params['embedding_dim'])
+        feed_dict['init_h_state:0'] = np.random.randn(BATCH_SIZE,
+                                                      params['embedding_dim'])
         _x, _y, _z, probs = sess.run([x, y, z.loss, \
                                       z.predictions['probability']],
                                       feed_dict=feed_dict)
@@ -156,6 +153,7 @@ def sanity_check():
     print "A single sample (low T): ", sample(probs[:, 0, :], temp=0.1)
     print "Argmax                 : ", np.argmax(probs[:, 0, :], axis=1)
     print "A single sample (T=1)  : ", sample(probs[:, 0, :], temp=1.0)
+
 
 if __name__ == "__main__":
     sanity_check()
