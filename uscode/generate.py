@@ -40,7 +40,7 @@ class ModelStepper(object):
 
         saver = tf.train.Saver()
         saver.restore(session, model_checkpoint)
-        print("Restored model from %s", model_checkpoint)
+        print("Restored model from %s" % model_checkpoint)
         self.session = session
 
     def reset_state(self):
