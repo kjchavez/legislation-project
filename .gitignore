@@ -6,5 +6,5 @@ output/
 *~
 uscode/processed-data/
 
-# Secret files
-apikeys.yaml
+# Personal files not for repo.
+TODO.md
