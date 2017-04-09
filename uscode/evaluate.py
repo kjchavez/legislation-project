@@ -17,7 +17,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_dir", default="/tmp/legislation-model")
     parser.add_argument("--data_path",
-        default="/home/kevin/projects/legislation-project/uscode/processed-data")
+        default="/home/kevin/projects/legislation-project/output")
     parser.add_argument("--checkpoint", '-c', default=None)
     parser.add_argument("--steps", '-s', type=int, default=None)
 
