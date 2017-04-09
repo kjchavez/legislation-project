@@ -2,17 +2,23 @@ import codecs
 import collections
 import glob
 
+from nltk.tokenize import wordpunct_tokenize
+
 
 def _freq(key, counter):
     return float(counter[key]) / sum(counter.values())
 
+def _file_contents_generator(filepattern):
+    for filename in glob.glob(filepattern):
+        with open(filename) as fp:
+            yield filename, fp.read()
 
 class Vocabulary(object):
     OUT_OF_VOCABULARY = "<oov>"
 
     def __init__(self, tokens):
         self.word_to_id = {}
-        self.id_to_word = []
+        self.id_to_word = [Vocabulary.OUT_OF_VOCABULARY]
         self.word_to_id[Vocabulary.OUT_OF_VOCABULARY] = 0
         idx = 1
         for token in tokens:
@@ -43,13 +49,13 @@ class Vocabulary(object):
             return Vocabulary([line.split()[0] for line in fp])
 
     @staticmethod
-    def build(filepattern, tokenize_fn, max_num_tokens, min_freq=None, min_count=None):
+    def fromiterator(iterator, tokenize_fn=wordpunct_tokenize,
+                     max_num_tokens=None, min_freq=None, min_count=None):
+        """ Builds vocab from an iterator that yields (id, text) tuples."""
         counter = collections.Counter()
-        for filename in glob.glob(filepattern):
-            print "Processing:", filename
-            with open(filename) as fp:
-                for line in fp:
-                    counter.update(tokenize_fn(line))
+        for idx, text in iterator:
+            print "Processing:", idx
+            counter.update(tokenize_fn(text))
 
         tokens = []
         for key, count in counter.most_common(max_num_tokens):
@@ -60,4 +66,9 @@ class Vocabulary(object):
 
         return Vocabulary(tokens)
 
+    @staticmethod
+    def build(filepattern, tokenize_fn, max_num_tokens, min_freq=None, min_count=None):
+        return Vocabulary.fromiterator(_file_contents_generator(filepattern),
+                                       tokenize_fn=tokenize_fn, min_freq=min_freq,
+                                       min_count=min_count)
 
