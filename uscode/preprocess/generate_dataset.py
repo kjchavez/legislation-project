@@ -16,11 +16,7 @@ import glob
 import os
 import random
 from vocab import Vocabulary
-from tokenizer import tokenize
-
-# For testing fast tokenization
-# def tokenize(text):
-#     return text.split()
+from nltk.tokenize import wordpunct_tokenize as tokenize
 
 def parse_args():
     parser = argparse.ArgumentParser()
