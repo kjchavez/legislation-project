@@ -1,6 +1,8 @@
 import codecs
 import collections
 import glob
+import unicodedata
+import sys
 
 from nltk.tokenize import wordpunct_tokenize
 
@@ -29,8 +31,17 @@ class Vocabulary(object):
     def saveto(self, filename):
         with codecs.open(filename, 'w', encoding='utf-8') as fp:
             for word in self.id_to_word:
-                fp.write(word)
+                try:
+                    fp.write(word)
+                except:
+                    print "Error in saving vocabulary."
+                    print "Offending token:", word
+                    print "Individual chars:", [c for c in word]
+                    print "If tokens are coming from file, check encoding!" 
+                    sys.exit(1)
+
                 fp.write('\n')
+
 
     def get(self, token):
         """ Returns id of token, or id for <oov> if token is unknown. """
@@ -45,7 +56,9 @@ class Vocabulary(object):
 
     @staticmethod
     def fromfile(filename):
-        with open(filename) as fp:
+        with codecs.open(filename, encoding='utf-8') as fp:
+            oov = next(fp).strip()
+            assert oov == Vocabulary.OUT_OF_VOCABULARY
             return Vocabulary([line.split()[0] for line in fp])
 
     @staticmethod
