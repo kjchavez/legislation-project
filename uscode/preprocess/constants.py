@@ -1,7 +1,7 @@
 # Bills
-BILL_START = '<SOB>'
-BILL_END = '<EOB>'
+BILL_START = u'<SOB>'
+BILL_END = u'<EOB>'
 
 # Resolutions
-RESOLUTION_START = '<SOR>'
-RESOLUTION_END = '<EOR>'
+RESOLUTION_START = u'<SOR>'
+RESOLUTION_END = u'<EOR>'
