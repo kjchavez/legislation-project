@@ -6,7 +6,7 @@
 
         * vocabulary.txt:  Ordered list of all tokens appearing in the data.
         * train.txt:       Space-separated token ids for training data.
-        * valid.txt:       Space-separated token ids for validation data.
+        * validate.txt:       Space-separated token ids for validation data.
         * test.txt:        Space-separated token ids for test data.
         * METADATA:        Additional information about the generated data
 
@@ -98,7 +98,7 @@ def main():
 
     # Validation data
     valid_token_ids = _files_to_token_ids(valid_files, vocab)
-    _write_ids_to_file(valid_token_ids, outdir.file('valid.txt'))
+    _write_ids_to_file(valid_token_ids, outdir.file('validate.txt'))
 
     # Test data
     test_token_ids = _files_to_token_ids(test_files, vocab)

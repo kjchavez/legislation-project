@@ -3,7 +3,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 from os.path import join
-from preprocess.vocab import Vocabulary
+from preprocessing.vocab import Vocabulary
 
 def _load_ids_from_file(filename):
     with open(filename) as fp:
@@ -11,7 +11,7 @@ def _load_ids_from_file(filename):
 
 def _raw_data(datadir):
     train_file = join(datadir, 'train.txt')
-    valid_file = join(datadir, 'valid.txt')
+    valid_file = join(datadir, 'validate.txt')
     test_file = join(datadir, 'test.txt')
     vocab_file = join(datadir, 'vocabulary.txt')
 
