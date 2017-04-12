@@ -5,7 +5,7 @@ output/
 *.pyc
 *.txt
 *~
-uscode/processed-data/
 
 # Personal files not for repo.
 TODO.md
+notes.md
