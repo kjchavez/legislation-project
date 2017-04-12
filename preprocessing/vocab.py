@@ -4,7 +4,7 @@ import glob
 import unicodedata
 import sys
 
-from uscode.preprocess import tokenizer
+import preprocessing.tokenizer as tokenizer
 
 def _freq(key, counter):
     return float(counter[key]) / sum(counter.values())

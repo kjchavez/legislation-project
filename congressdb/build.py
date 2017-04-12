@@ -19,9 +19,9 @@
 import argparse
 import shutil
 import sys
-from uscode.preprocess.vocab import Vocabulary
-from uscode.preprocess import constants
-from uscode.preprocess import tokenizer
+from preprocessing.vocab import Vocabulary
+from preprocessing import constants
+from preprocessing import tokenizer
 from .congressdb import *
 
 
