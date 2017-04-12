@@ -18,6 +18,10 @@ def _file_contents_generator(filepattern):
 class Vocabulary(object):
     OUT_OF_VOCABULARY = "<oov>"
 
+    # Newline characters don't saveto() file nicely, so we use this placeholder
+    # for the character.
+    NEWLINE = "<newline>"
+
     def __init__(self, tokens, tokenize_fn):
         assert tokenizer.is_registered_tokenizer(tokenize_fn)
         self.tokenize = tokenize_fn
@@ -27,6 +31,9 @@ class Vocabulary(object):
         self.word_to_id[Vocabulary.OUT_OF_VOCABULARY] = 0
         idx = 1
         for token in tokens:
+            if token == Vocabulary.NEWLINE:
+                token = u'\n'
+
             self.word_to_id[token] = idx
             self.id_to_word.append(token)
             idx += 1
@@ -35,13 +42,16 @@ class Vocabulary(object):
     def saveto(self, filename):
         with codecs.open(filename, 'w', encoding='utf-8') as fp:
             for word in self.id_to_word:
+                if word == "\n":
+                    word = Vocabulary.NEWLINE
+
                 try:
                     fp.write(word)
                 except:
                     print "Error in saving vocabulary."
                     print "Offending token:", word
                     print "Individual chars:", [c for c in word]
-                    print "If tokens are coming from file, check encoding!" 
+                    print "If tokens are coming from file, check encoding!"
                     sys.exit(1)
 
                 fp.write('\n')
