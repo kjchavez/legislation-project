@@ -2,6 +2,7 @@
 uscode_text/
 output/
 .ipynb_checkpoints/
+snapshots/
 *.pyc
 *.txt
 *~
@@ -9,3 +10,6 @@ output/
 # Personal files not for repo.
 TODO.md
 notes.md
+
+# References
+ptb_word_lm.py

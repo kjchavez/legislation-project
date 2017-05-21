@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow.python import debug as tf_debug
 import reader
-from model import model_fn
+from model import LanguageModel
 import argparse
 import datetime
 import os
@@ -25,6 +25,7 @@ def parse_args():
     parser.add_argument("--batch_size", type=int, default=4)
     parser.add_argument("--unroll_steps", type=int, default=10)
     parser.add_argument("--embedding_dim", type=int, default=8)
+    parser.add_argument("--num_layers", type=int, default=2)
     parser.add_argument("--learning_rate", type=float, default=1e-4)
 
     # ...or with a YAML file containing all the values.
@@ -55,6 +56,12 @@ else:
     params['unroll_length'] = args.unroll_steps
     params['learning_rate'] = args.learning_rate
 
+required = ('embedding_dim', 'batch_size', 'unroll_length', 'opt_method',
+        'opt_params', 'num_layers')
+if not all(param in params for param in required):
+    raise ValueError("Required parameters are missing.")
+    sys.exit(1)
+
 train, valid, test, vocab = reader._raw_data(args.data_path)
 
 # Actual vocab size is determined after loading data 
@@ -74,8 +81,9 @@ config = tf.contrib.learn.RunConfig(
         )
 
 
+model = LanguageModel(params)
 estimator = tf.contrib.learn.Estimator(
-                model_fn=model_fn,
+                model_fn=model.model_fn,
                 model_dir=args.model_dir,
                 config=config,
                 params=params)
