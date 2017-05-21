@@ -14,8 +14,9 @@ from sample import sample
 from reader import load_vocab
 import yaml
 
-SOB_TOKEN_ID = 1
 OOV_ID = 0
+SOB_TOKEN_ID = 1
+EOB_TOKEN_ID = 2
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -25,13 +26,13 @@ def parse_args():
     parser.add_argument("--temp", '-T', type=float, default=1.0)
     parser.add_argument("--hyperparams", default=None,
                         help="yaml file of hyperparameters")
-    parser.add_argument("--length", type=int, default=200,
+    parser.add_argument("--max_length", type=int, default=1000,
                         help="Max number of tokens to generate.")
     parser.add_argument("--output", '-o', type=str, default=None)
 
     return parser.parse_args()
 
-def generate(session, model, steps, init_token, temp=1.0):
+def generate(session, model, max_length, init_token, temp=1.0):
   iters = 0
   state = session.run(model.initial_state)
   token = init_token
@@ -42,7 +43,7 @@ def generate(session, model, steps, init_token, temp=1.0):
   }
 
   tokens = []
-  for step in range(steps):
+  for step in range(max_length):
     feed_dict = {}
     feed_dict[model.input_tokens] = [[token]]
     for i, (c, h) in enumerate(model.initial_state):
@@ -59,6 +60,9 @@ def generate(session, model, steps, init_token, temp=1.0):
         while token == OOV_ID:
             logging.debug("Sampled an <oov> token, re-drawing...")
             token = sample(probs[:, 0, :], temp=temp)[0]
+
+    if token == EOB_TOKEN_ID:
+        break
     tokens.append(token)
 
   return tokens
@@ -93,7 +97,7 @@ def main():
 
     sv = tf.train.Supervisor(logdir=args.model_dir)
     with sv.managed_session() as session:
-        token_ids = generate(session, model, args.length, SOB_TOKEN_ID, temp=args.temp)
+        token_ids = generate(session, model, args.max_length, SOB_TOKEN_ID, temp=args.temp)
 
     if not args.output:
         print ' '.join(vocab.get_token(idx) for idx in token_ids)

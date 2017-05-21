@@ -70,8 +70,8 @@ def main():
             save_model_secs=10)
     with sv.managed_session() as session:
       for i in range(params['max_max_epoch']):
-        lr_decay = params['lr_decay'] ** max(i + 1 - params['max_epoch'], 0.0)
-        m.assign_lr(session, params['learning_rate'] * lr_decay)
+        #lr_decay = params['lr_decay'] ** max(i + 1 - params['max_epoch'], 0.0)
+        #m.assign_lr(session, params['learning_rate'] * lr_decay)
 
         print("Epoch: %d Learning rate: %.3f" % (i + 1, session.run(m.lr)))
         train_perplexity = run_epoch(session, m, eval_op=m.train_op,

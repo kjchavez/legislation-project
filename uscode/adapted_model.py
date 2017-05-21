@@ -13,44 +13,10 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Example / benchmark for building a Language LSTM model.
+""" LSTM language model based on the PTB model from TensorFlow tutorial.
 
-Trains the model described in:
-(Zaremba, et. al.) Recurrent Neural Network Regularization
-http://arxiv.org/abs/1409.2329
-
-There are 3 supported model configurations:
-===========================================
-| config | epochs | train | valid  | test
-===========================================
-| small  | 13     | 37.99 | 121.39 | 115.91
-| medium | 39     | 48.45 |  86.16 |  82.07
-| large  | 55     | 37.87 |  82.62 |  78.29
-The exact results may vary depending on the random initialization.
-
-The hyperparameters used in the model:
-- init_scale - the initial scale of the weights
-- learning_rate - the initial value of the learning rate
-- max_grad_norm - the maximum permissible norm of the gradient
-- num_layers - the number of LSTM layers
-- unroll_length - the number of unrolled steps of LSTM
-- hidden_size - the number of LSTM units
-- max_epoch - the number of epochs trained with the initial learning rate
-- max_max_epoch - the total number of epochs for training
-- keep_prob - the probability of keeping weights in the dropout layer
-- lr_decay - the decay of the learning rate for each epoch after "max_epoch"
-- batch_size - the batch size
-
-The data required for this example is in the data/ dir of the
-Language dataset from Tomas Mikolov's webpage:
-
-$ wget http://www.fit.vutbr.cz/~imikolov/rnnlm/simple-examples.tgz
-$ tar xvf simple-examples.tgz
-
-To run:
-
-$ python ptb_word_lm.py --model_dir=simple-examples/data/
-
+Hyperparameters should go in a separate hparams.yaml file. A known good
+configuration is saved in this project directory.
 """
 from __future__ import absolute_import
 from __future__ import division
@@ -58,6 +24,7 @@ from __future__ import print_function
 
 import uscode.reader as reader
 
+import uscode.opt as opt
 import inspect
 import time
 
@@ -68,6 +35,7 @@ import yaml
 
 logging = tf.logging
 ModeKeys = tf.contrib.learn.ModeKeys
+DEFAULT_MAX_GRAD_NORM = 5
 
 class InputData(object):
   """The input data."""
@@ -78,6 +46,34 @@ class InputData(object):
     self.epoch_size = ((len(data) // batch_size) - 1) // num_steps
     self.input_data, self.targets = reader.example_producer(
         data, batch_size, num_steps, name=name)
+
+
+def add_recall_at_k_summaries(logits, targets, ks=[1, 5, 10]):
+    flat_logits = tf.reshape(logits, (-1, logits.shape[-1].value))
+    flat_targets = tf.reshape(targets, (-1,))
+    for k in ks:
+        at_k = tf.to_float(tf.nn.in_top_k(flat_logits, flat_targets,
+            k))
+        tf.summary.scalar('hit_%d' % k, tf.reduce_mean(at_k))
+
+
+def clipped_train_op(loss, var_list, params, add_summaries=True):
+    max_grad_norm = params.get('max_grad_norm', DEFAULT_MAX_GRAD_NORM)
+    optimizer = opt.create_optimizer(params['opt_method'],
+                                     params['opt_params'])
+    grads_and_vars = optimizer.compute_gradients(loss, var_list=var_list)
+    grads, tvars = zip(*grads_and_vars)
+    grads, _ = tf.clip_by_global_norm(grads,
+                                      max_grad_norm)
+    train_op = optimizer.apply_gradients(
+        zip(grads, tvars),
+        global_step=tf.contrib.framework.get_or_create_global_step())
+    if add_summaries:
+        for grad, var in grads_and_vars:
+            tf.summary.histogram(var.name, var)
+            tf.summary.histogram(var.name + '/gradient', grad)
+
+    return train_op
 
 
 class LanguageModel(object):
@@ -139,7 +135,6 @@ class LanguageModel(object):
 
     logits = tf.matmul(output, softmax_w) + softmax_b
 
-    # From model.py
     logits = tf.reshape(logits, [batch_size,
                                  num_steps,
                                  vocab_size])
@@ -149,6 +144,8 @@ class LanguageModel(object):
     if mode == ModeKeys.INFER:
         return
 
+    # == Below here, |targets| are guaranteed to be meaningful. ==
+    add_recall_at_k_summaries(logits, targets, ks=[1, 5, 10])
     loss = tf.contrib.seq2seq.sequence_loss(logits, targets,
             tf.ones_like(targets, dtype=tf.float32),
             average_across_timesteps=True,
@@ -161,15 +158,12 @@ class LanguageModel(object):
     if not is_training:
       return
 
-    self._lr = tf.Variable(0.0, trainable=False)
     tvars = tf.trainable_variables()
-    grads, _ = tf.clip_by_global_norm(tf.gradients(loss, tvars),
-                                      params['max_grad_norm'])
-    optimizer = tf.train.GradientDescentOptimizer(self._lr)
-    self._train_op = optimizer.apply_gradients(
-        zip(grads, tvars),
-        global_step=tf.contrib.framework.get_or_create_global_step())
+    self._train_op = clipped_train_op(loss, tvars, params)
 
+    # Not actually using this...
+    self._lr = tf.Variable(0.0,
+                           trainable=False)
     self._new_lr = tf.placeholder(
         tf.float32, shape=[], name="new_learning_rate")
     self._lr_update = tf.assign(self._lr, self._new_lr)

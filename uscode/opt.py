@@ -34,7 +34,31 @@ def _optimizer_class(class_name):
     optimizer = getattr(tf.train, class_name)
     return optimizer
 
+def _create_decaying_lr(lr_params):
+    if 'decay_function' not in lr_params:
+        raise KeyError('decay_function not found in lr_params')
+    if 'decay_args' not in lr_params:
+        raise KeyError('decay_args not found in lr_params')
+    decay_fn = _optimizer_class(lr_params['decay_function'])
+    args = lr_params['decay_args']
+
+    # This arg should always come from the framework, not file.
+    if 'global_step' in inspect.getargspec(decay_fn).args:
+        args['global_step'] = tf.contrib.framework.get_or_create_global_step()
+    return decay_fn(**lr_params['decay_args'])
+
 def create_optimizer(class_name, params):
+    # If the 'learning_rate' param is another dictionary of params,
+    # assume we're creating a decaying learning rate.
+    if 'learning_rate' in params:
+        lr_params = params['learning_rate']
+        if isinstance(lr_params, dict):
+            print "Converted params to object"
+            decaying_lr = _create_decaying_lr(lr_params)
+            params['learning_rate'] = decaying_lr
+        else:
+            print "Not converting learning_rate of type: %s" % type(lr_params)
+
     cls = _optimizer_class(class_name)
     instance = cls(**params)
     return instance
