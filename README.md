@@ -75,6 +75,21 @@ And creates clauses of legislation that look like this:
 >  respect to work eligibility under the alternative limit by 
 >  reason of section 408b. 
 
+Compared to a real snippet hr1347/text-versions/ih/document.txt
+
+>            (2) Preservation of records.--The State shall ensure that 
+>        the records of the independent redistricting commission are 
+>        retained in the appropriate State archive in such manner as may 
+>        be necessary to enable the State to respond to any civil action 
+>        brought with respect to Congressional redistricting in the 
+>        State.
+
 CAVEAT:
 Spacing around punctuation symbols fixed manually. Capitalization stripped from original
 model and thus re-introduced above.
+
+Real snippet found by searching text for "Preservation of". 
+
+> **Fun Fact:** The phrase "Perservation of actions"
+> does not show up in any bill introduced by the 114th House of Representatives.
+
