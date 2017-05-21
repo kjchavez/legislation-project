@@ -53,3 +53,28 @@ python -m lm.generate --model_dir=/tmp/house-model --data_path=house-introduced-
 
 Omitting the `--output` flag will print to stdout.
 
+### Evaluate on test set
+
+```
+python -m lm.evaluate --model_dir=/tmp/house-model --data_path=house-introduced-114 \
+                      --hparams=hparams.yaml
+```
+
+Using the hyperparameters in hparams, training for 274K iterations (~9 epochs),
+we end up with a test set perplexity of 13.1.
+
+And creates clauses of legislation that look like this:
+
+>  (2) Preservation of actions.-- The guidelines submitted to 
+>  determine all right of any action shall be resolved in the 
+>  federal register on the final patent repayment plan, a imputed 
+>  known as a national examiner, a media order, contact authority, 
+>  and information it determines that a portion of the exemption 
+>  from tax is allocated. Such center shall not receive such 
+>  transfers for the total amount of payment of funds with 
+>  respect to work eligibility under the alternative limit by 
+>  reason of section 408b. 
+
+CAVEAT:
+Spacing around punctuation symbols fixed manually. Capitalization stripped from original
+model and thus re-introduced above.

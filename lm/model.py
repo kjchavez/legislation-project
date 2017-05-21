@@ -69,6 +69,10 @@ def clipped_train_op(loss, var_list, params, add_summaries=True):
         zip(grads, tvars),
         global_step=tf.contrib.framework.get_or_create_global_step())
     if add_summaries:
+        if 'learning_rate' in params['opt_params']:
+            tf.summary.scalar('learning_rate',
+                              params['opt_params']['learning_rate'])
+
         for grad, var in grads_and_vars:
             tf.summary.histogram(var.name, var)
             tf.summary.histogram(var.name + '/gradient', grad)
@@ -160,13 +164,6 @@ class LanguageModel(object):
 
     tvars = tf.trainable_variables()
     self._train_op = clipped_train_op(loss, tvars, params)
-
-    # Not actually using this...
-    self._lr = tf.Variable(0.0,
-                           trainable=False)
-    self._new_lr = tf.placeholder(
-        tf.float32, shape=[], name="new_learning_rate")
-    self._lr_update = tf.assign(self._lr, self._new_lr)
 
   def assign_lr(self, session, lr_value):
     session.run(self._lr_update, feed_dict={self._new_lr: lr_value})
