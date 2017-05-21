@@ -9,7 +9,7 @@ import argparse
 import tensorflow as tf
 import numpy as np
 import logging
-from uscode.adapted_model import LanguageModel
+from uscode.model import LanguageModel
 from sample import sample
 from reader import load_vocab
 import yaml
