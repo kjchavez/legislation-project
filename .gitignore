@@ -1,5 +1,5 @@
 # Generated files
-uscode_text/
+house-introduced-114/
 output/
 .ipynb_checkpoints/
 snapshots/
@@ -12,4 +12,3 @@ TODO.md
 notes.md
 
 # References
-ptb_word_lm.py

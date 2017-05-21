@@ -30,7 +30,7 @@ This will create a directory `house-introduced-114` with training, validation, a
 A known set of good hyperparameter are in `hparams.yaml`.
 
 ```
-python -m uscode.train_model --data_path=house-introduced-114 --model_dir=/tmp/house-model --hparams=hparams.yaml
+python -m lm.train --data_path=house-introduced-114 --model_dir=/tmp/house-model --hparams=hparams.yaml
 ```
 
 This will start training a model using the dataset we just generated. Snapshots of the model will go to `/tmp/house-model`.
@@ -46,7 +46,7 @@ tensorboard --logdir=/tmp/house-model
 To create a sample from the language model, using the latest snapshot:
 
 ```
-python -m uscode.generate --model_dir=/tmp/house-model --data_path=house-introduced-114 \
+python -m lm.generate --model_dir=/tmp/house-model --data_path=house-introduced-114 \
                           --hyperparams=hparams.yaml --max_length=1000 --temp=1.1 \
                           --output=sample.txt
 ```

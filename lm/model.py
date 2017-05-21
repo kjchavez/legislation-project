@@ -22,9 +22,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import uscode.reader as reader
+import lm.reader as reader
 
-import uscode.opt as opt
+import lm.opt as opt
 import inspect
 import time
 

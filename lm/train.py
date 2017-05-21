@@ -9,8 +9,8 @@ import yaml
 import datetime
 import argparse
 
-from uscode.model import InputData, LanguageModel, run_epoch
-import uscode.reader as reader
+from lm.model import InputData, LanguageModel, run_epoch
+import lm.reader as reader
 
 ModeKeys = tf.contrib.learn.ModeKeys
 tf.logging.set_verbosity(tf.logging.INFO)
