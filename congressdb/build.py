@@ -1,5 +1,9 @@
 """
     Script for building data sets out of slices of GovTrack bulk congress data.
+    This assumes you have downloaded the dataset to the local machine.
+
+    See https://www.govtrack.us/developers/data for details on getting the
+    data.
 
     Sample usage:
 
