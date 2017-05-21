@@ -20,9 +20,9 @@ EOB_TOKEN_ID = 2
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_dir", default="/results")
+    parser.add_argument("--model_dir", default="/tmp/house-model")
     parser.add_argument("--data_path",
-        default="/home/kevin/data/house-introduced-114")
+        default="house-introduced-114")
     parser.add_argument("--temp", '-T', type=float, default=1.0)
     parser.add_argument("--hyperparams", default=None,
                         help="yaml file of hyperparameters")

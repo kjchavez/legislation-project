@@ -31,8 +31,8 @@ from .congressdb import *
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--src", default="/home/kevin/data/congress")
-    parser.add_argument("--output", default="/tmp/data")
+    parser.add_argument("--src", required=True)
+    parser.add_argument("--output", default=None)
 
     # Filters on the data.
     parser.add_argument("--type", choices=['*', 's', 'hr'], default='*')
@@ -90,9 +90,19 @@ def build_new_vocab(src, bill_type, bill_version, congress=None,
 
     return vocab
 
+def _create_default_output_dirname(args):
+    dirname = "congress-%d" % args.congress
+    if args.type != '*':
+        dirname += '-' + args.type
+    if args.version != '*':
+        dirname += '-' + args.version
+    return dirname
 
 def main():
     args = parse_args()
+    if not args.output:
+        args.output = _create_default_output_dirname(args)
+
     _check_ok_path(args.output, force=args.force)
     if args.prebuilt_vocab:
         vocab = Vocabulary.fromfile(args.prebuilt_vocab)

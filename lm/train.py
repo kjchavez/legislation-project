@@ -19,9 +19,9 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--hparams', help='YAML file of hyperparameters')
     parser.add_argument('--data_path', help="Where data files are stored.",
-                        default="/home/kevin/data/house-introduced-114")
+                        default="house-introduced-114")
     parser.add_argument('--model_dir', help="to save model snapshots",
-                        default="snapshots/most_recent")
+                        default="/tmp/house-model")
     parser.add_argument("--reset", action='store_true',
                         help="If true, clears any data in 'model_dir' ")
     parser.add_argument('--debug', action='store_true')
@@ -57,7 +57,7 @@ def main():
 
   eval_params = get_params(args.hparams)
   eval_params['batch_size'] = 1
-  eval_params['num_steps'] = 1
+  eval_params['unroll_length'] = 1
 
   with tf.Graph().as_default():
 
@@ -80,13 +80,6 @@ def main():
                 features=valid_input.input_data, targets=valid_input.targets,
                 epoch_size=valid_input.epoch_size)
 
-    with tf.name_scope("Test"):
-      test_input = InputData(params=eval_params, data=test_data, name="TestInput")
-      with tf.variable_scope("Model", reuse=True, initializer=initializer):
-        mtest = LanguageModel(mode=ModeKeys.EVAL, params=eval_params,
-                         features=test_input.input_data,
-                         targets=test_input.targets,
-                         epoch_size=test_input.epoch_size)
 
     sv = tf.train.Supervisor(logdir=args.model_dir, save_summaries_secs=10,
             save_model_secs=10)
@@ -96,15 +89,9 @@ def main():
         train_perplexity = run_epoch(session, m, eval_op=m.train_op,
                                      verbose=True)
         print("Epoch: %d Train Perplexity: %.3f" % (i + 1, train_perplexity))
+
         valid_perplexity = run_epoch(session, mvalid)
         print("Epoch: %d Valid Perplexity: %.3f" % (i + 1, valid_perplexity))
-
-      test_perplexity = run_epoch(session, mtest)
-      print("Test Perplexity: %.3f" % test_perplexity)
-
-      if args.model_dir:
-        print("Saving model to %s." % args.model_dir)
-        sv.saver.save(session, args.model_dir, global_step=sv.global_step)
 
 
 if __name__ == "__main__":
