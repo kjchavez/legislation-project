@@ -165,9 +165,6 @@ class LanguageModel(object):
     tvars = tf.trainable_variables()
     self._train_op = clipped_train_op(loss, tvars, params)
 
-  def assign_lr(self, session, lr_value):
-    session.run(self._lr_update, feed_dict={self._new_lr: lr_value})
-
   @property
   def batch_size(self):
       return self._params['batch_size']
@@ -187,10 +184,6 @@ class LanguageModel(object):
   @property
   def final_state(self):
     return self._final_state
-
-  @property
-  def lr(self):
-    return self._lr
 
   @property
   def train_op(self):

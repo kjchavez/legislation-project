@@ -71,7 +71,6 @@ def main():
         m = LanguageModel(mode=ModeKeys.TRAIN, params=params,
                 features=train_input.input_data, targets=train_input.targets,
                 epoch_size=train_input.epoch_size)
-      tf.summary.scalar("LearningRate", m.lr)
 
     with tf.name_scope("Valid"):
       valid_input = InputData(params=params, data=valid_data, name="ValidInput")
@@ -85,7 +84,6 @@ def main():
             save_model_secs=10)
     with sv.managed_session() as session:
       for i in range(params['max_max_epoch']):
-        print("Epoch: %d Learning rate: %.3f" % (i + 1, session.run(m.lr)))
         train_perplexity = run_epoch(session, m, eval_op=m.train_op,
                                      verbose=True)
         print("Epoch: %d Train Perplexity: %.3f" % (i + 1, train_perplexity))
