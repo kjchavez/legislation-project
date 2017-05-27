@@ -15,14 +15,13 @@
 
 #!/usr/bin/env python2.7
 
-"""A client that talks to tensorflow_model_server loaded with mnist model.
-
-The client downloads test images of mnist data set, queries the service with
-such test images to get predictions, and calculates the inference error rate.
+"""A client that talks to tensorflow_model_server loaded with the legislation
+project language model. Still under development. The current 'predict' endpoint
+is rather useless.
 
 Typical usage example:
 
-    mnist_client.py --num_tests=100 --server=localhost:9000
+    lm_client.py --num_tests=1 --token=3 --server=localhost:9000
 """
 
 from __future__ import print_function
@@ -35,14 +34,14 @@ from grpc.beta import implementations
 import numpy
 
 import tensorflow as tf
-import python_predict_client as ppc
-import mnist_input_data
+import tfserving_client as client
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--concurrency", type=int, default=1)
     parser.add_argument("--num_tests", type=int, default=100)
     parser.add_argument("--server", default='')
+    parser.add_argument("--token", type=int, default=3)
     parser.add_argument("--work_dir", default="/tmp")
     return parser.parse_args()
 
@@ -114,10 +113,10 @@ def _create_rpc_callback(label, result_counter):
       sys.stdout.write('.')
       sys.stdout.flush()
       response = numpy.array(
-          result_future.result().outputs['scores'].float_val)
-      prediction = numpy.argmax(response)
-      if label != prediction:
-        result_counter.inc_error()
+          result_future.result().outputs['probs'].float_val)
+      print(result_future.result().outputs.keys())
+      print(response)
+
     result_counter.inc_done()
     result_counter.dec_active()
   return _callback
@@ -138,22 +137,20 @@ def do_inference(hostport, work_dir, concurrency, num_tests):
   Raises:
     IOError: An error occurred processing test data set.
   """
-  test_data_set = mnist_input_data.read_data_sets(work_dir).test
   host, port = hostport.split(':')
   channel = implementations.insecure_channel(host, int(port))
-  stub = ppc.beta_create_PredictionService_stub(channel)
+  stub = client.beta_create_PredictionService_stub(channel)
   result_counter = _ResultCounter(num_tests, concurrency)
   for _ in range(num_tests):
-    request = ppc.PredictRequest()
-    request.model_spec.name = 'mnist'
-    request.model_spec.signature_name = 'predict_images'
-    image, label = test_data_set.next_batch(1)
-    request.inputs['images'].CopyFrom(
-        tf.contrib.util.make_tensor_proto(image[0], shape=[1, image[0].size]))
+    request = client.PredictRequest()
+    request.model_spec.name = 'lm'
+    request.model_spec.signature_name = "next_token"
+    request.inputs['input_token'].CopyFrom(
+        tf.contrib.util.make_tensor_proto([[FLAGS.token]], shape=[1, 1]))
     result_counter.throttle()
     result_future = stub.Predict.future(request, 5.0)  # 5 seconds
     result_future.add_done_callback(
-        _create_rpc_callback(label[0], result_counter))
+        _create_rpc_callback(None, result_counter))
   return result_counter.get_error_rate()
 
 

@@ -77,12 +77,12 @@ And creates clauses of legislation that look like this:
 
 Compared to a real snippet hr1347/text-versions/ih/document.txt
 
->            (2) Preservation of records.--The State shall ensure that 
->        the records of the independent redistricting commission are 
->        retained in the appropriate State archive in such manner as may 
->        be necessary to enable the State to respond to any civil action 
->        brought with respect to Congressional redistricting in the 
->        State.
+>  (2) Preservation of records.--The State shall ensure that 
+>  the records of the independent redistricting commission are 
+>  retained in the appropriate State archive in such manner as may 
+>  be necessary to enable the State to respond to any civil action 
+>  brought with respect to Congressional redistricting in the 
+>  State.
 
 CAVEAT:
 Spacing around punctuation symbols fixed manually. Capitalization stripped from original
@@ -90,6 +90,39 @@ model and thus re-introduced above.
 
 Real snippet found by searching text for "Preservation of". 
 
-> **Fun Fact:** The phrase "Perservation of actions"
+> **Fun Fact:** The phrase "Preservation of actions"
 > does not show up in any bill introduced by the 114th House of Representatives.
 
+### Serving the Model
+
+You'll need to have TensorFlow Serving installed. See https://tensorflow.github.io/serving/
+
+
+First, export the model:
+
+```
+python -m lm.export --model_dir=/tmp/house-model --data_path=house-introduced-114 \
+                    --hparams=hparams.yaml --export_dir=/tmp/serve/house-model --version=1
+```
+
+Build the default server,
+
+```
+bazel build //tensorflow_serving/model_servers:tensorflow_model_server
+```
+
+and bring it up pointing to our export directory:
+
+```
+bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server \
+	--port=9000 \
+	--model_base_path=/tmp/serve/house-model \
+	--model_name=lm
+```
+
+
+### Querying the Served Model
+
+```
+python -m serving.lm_client --server=127.0.0.1:9000 --num_tests=1 --token=5
+```
