@@ -123,6 +123,18 @@ bazel-bin/tensorflow_serving/model_servers/tensorflow_model_server \
 
 ### Querying the Served Model
 
+With a commandline client...
+
 ```
 python -m serving.lm_client --server=127.0.0.1:9000 --num_tests=1 --token=5
 ```
+
+But also, there's an interactive webpage in the works for presenting the models.
+
+```
+cd site
+./start_server.sh
+```
+
+And then in a browser go to `localhost:5000`. You should see a poor man's bar chart.
+Honestly, it's awful right now. Just followed the intro D3 tutorial. But just you wait.
