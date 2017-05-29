@@ -1,6 +1,7 @@
 from flask import Flask
 from flask import jsonify
 from flask import render_template
+from flask import request
 
 from grpc.beta import implementations
 import numpy as np
@@ -34,4 +35,16 @@ def hello():
 @app.route("/query")
 def query():
     result = {'probs': get_probs(5)}
+    return jsonify(result)
+
+count = 1
+@app.route("/generate")
+def generate():
+    global count
+    result = {}
+    result['text'] = "Generated text #%d." % count
+    count += 1
+    print "Params data:", request.args
+    temp = float(request.args.get("temp", 1.0))
+    print "temp =", temp
     return jsonify(result)
