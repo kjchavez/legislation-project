@@ -29,7 +29,7 @@ app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
 @app.route("/")
 def hello():
-    return render_template('index.html')
+    return render_template('language-model.html')
 
 @app.route("/query")
 def query():

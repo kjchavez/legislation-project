@@ -1,5 +1,5 @@
 
-var svgContainer = d3.select("body").append("svg")
+var svgContainer = d3.select("#canvas").append("svg")
                                     .attr("width", 1000)
                                     .attr("height", 400);
 
