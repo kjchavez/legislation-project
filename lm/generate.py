@@ -62,7 +62,8 @@ def main():
 
     sv = tf.train.Supervisor(logdir=args.model_dir)
     with sv.managed_session() as session:
-        token_ids = session.run(model.output_tokens)[0]
+        token_ids = session.run(model.output_tokens, feed_dict =
+                {model.temperature: args.temp})[0]
 
     print "Generated sample of length %d" % len(token_ids)
     if not args.output:

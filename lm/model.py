@@ -124,6 +124,8 @@ class LanguageModel(object):
     num_layers = params['num_layers']
     is_training = mode == tf.contrib.learn.ModeKeys.TRAIN
 
+    global_step = tf.contrib.framework.get_or_create_global_step()
+
     # Slightly better results can be obtained with forget gate biases
     # initialized to 1 but the hyperparameters of the model would need to be
     # different than reported in the paper.
@@ -153,11 +155,12 @@ class LanguageModel(object):
     if mode == "GENERATE":
         # We need to feed an input at each step from the output of the previous
         # step.
+        self.temperature = tf.placeholder(tf.float32)
         helper = SamplingEmbeddingHelper(
           embedding=embedding,
           start_tokens=tf.tile([SOB_TOKEN_ID], [batch_size]),
           end_token=EOB_TOKEN_ID,
-          temperature=1.0)
+          temperature=self.temperature)
     else:
         # NOTE(kjchavez): By default, the inputs to TrainingHelper are assumed
         # to be batch major. Use time_major=True if you care to flip it.
