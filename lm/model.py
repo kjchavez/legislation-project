@@ -30,12 +30,19 @@ import time
 
 import numpy as np
 import tensorflow as tf
+from tensorflow.python.layers.core import Dense
 import yaml
 
 
 logging = tf.logging
 ModeKeys = tf.contrib.learn.ModeKeys
 DEFAULT_MAX_GRAD_NORM = 5
+
+# TODO(kjchavez): Bundle these with the model or at least in a separate
+# constants file.
+OOV_ID = 0
+SOB_TOKEN_ID = 1
+EOB_TOKEN_ID = 2
 
 class InputData(object):
   """The input data."""
@@ -78,6 +85,27 @@ def clipped_train_op(loss, var_list, params, add_summaries=True):
             tf.summary.histogram(var.name + '/gradient', grad)
 
     return train_op
+
+class SamplingEmbeddingHelper(tf.contrib.seq2seq.GreedyEmbeddingHelper):
+  def __init__(self, embedding, start_tokens, end_token, temperature=1.0,
+          params={}):
+    super(SamplingEmbeddingHelper, self).__init__(embedding, start_tokens,
+              end_token)
+    self.temperature = temperature
+    self.seed = params.get("seed", None)
+
+  def sample(self, time, outputs, state, name=None):
+    """Override sample method to get variety"""
+    del time, state  # unused by sample_fn
+    # Outputs are logits, use multinomial to sample from distribution. 
+    if not isinstance(outputs, tf.Tensor):
+      raise TypeError("Expected outputs to be a single Tensor, got: %s" %
+                      type(outputs))
+
+    # TODO(kjchavez): Consider what to do if we sample the out-of-vocab token.
+    sample_ids = tf.reshape(tf.to_int32(tf.multinomial(outputs, 1,
+                                                       seed=self.seed)), [-1])
+    return sample_ids
 
 
 class LanguageModel(object):
@@ -122,30 +150,42 @@ class LanguageModel(object):
     if is_training and keep_prob < 1:
       inputs = tf.nn.dropout(inputs, keep_prob)
 
-    inputs = tf.unstack(inputs, num=num_steps, axis=1)
-    outputs, state = tf.contrib.rnn.static_rnn(
-        cell, inputs, initial_state=self._initial_state)
-
-    # Note that here we 'stack' it in batch major order, so we won't
-    # need to transpose this later.
-    output = tf.reshape(tf.stack(axis=1, values=outputs), [-1, size])
+    if mode == "GENERATE":
+        # We need to feed an input at each step from the output of the previous
+        # step.
+        helper = SamplingEmbeddingHelper(
+          embedding=embedding,
+          start_tokens=tf.tile([SOB_TOKEN_ID], [batch_size]),
+          end_token=EOB_TOKEN_ID,
+          temperature=1.0)
+    else:
+        # NOTE(kjchavez): By default, the inputs to TrainingHelper are assumed
+        # to be batch major. Use time_major=True if you care to flip it.
+        helper = tf.contrib.seq2seq.TrainingHelper(
+                inputs=inputs,
+                sequence_length=tf.tile([num_steps], [batch_size]))
 
     # Create softmax layer.
-    softmax_w = tf.get_variable(
-        "softmax_w", [size, vocab_size], dtype=dtype)
-    softmax_b = tf.get_variable("softmax_b", [vocab_size], dtype=dtype)
-    tf.summary.histogram('softmax_b', softmax_b)
-    tf.summary.histogram('softmax_w', softmax_w)
+    output_layer = Dense(vocab_size)
 
-    logits = tf.matmul(output, softmax_w) + softmax_b
+    decoder = tf.contrib.seq2seq.BasicDecoder(
+        cell=cell,
+        helper=helper,
+        initial_state=cell.zero_state(batch_size, dtype),
+        output_layer=output_layer)
+    outputs, state = tf.contrib.seq2seq.dynamic_decode(
+       decoder=decoder,
+       output_time_major=False,
+       impute_finished=True,
+       maximum_iterations=1000)
 
-    logits = tf.reshape(logits, [batch_size,
-                                 num_steps,
-                                 vocab_size])
+    self.output_tokens = outputs.sample_id
+    logits = outputs.rnn_output
+
     self._final_state = state
     self.input_tokens = tokens
     self.token_probability = tf.nn.softmax(logits)
-    if mode == ModeKeys.INFER:
+    if mode in (ModeKeys.INFER, "GENERATE"):
         return
 
     # == Below here, |targets| are guaranteed to be meaningful. ==

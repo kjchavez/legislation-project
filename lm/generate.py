@@ -32,41 +32,6 @@ def parse_args():
 
     return parser.parse_args()
 
-def generate(session, model, max_length, init_token, temp=1.0):
-  iters = 0
-  state = session.run(model.initial_state)
-  token = init_token
-
-  fetches = {
-      "final_state": model.final_state,
-      "probs": model.token_probability
-  }
-
-  tokens = []
-  for step in range(max_length):
-    feed_dict = {}
-    feed_dict[model.input_tokens] = [[token]]
-    for i, (c, h) in enumerate(model.initial_state):
-      feed_dict[c] = state[i].c
-      feed_dict[h] = state[i].h
-
-    vals = session.run(fetches, feed_dict)
-    probs = vals["probs"]
-    state = vals["final_state"]
-
-    # draw sample from distribution
-    token = sample(probs[:, 0, :], temp=temp)[0]
-    if token == OOV_ID:
-        while token == OOV_ID:
-            logging.debug("Sampled an <oov> token, re-drawing...")
-            token = sample(probs[:, 0, :], temp=temp)[0]
-
-    if token == EOB_TOKEN_ID:
-        break
-    tokens.append(token)
-
-  return tokens
-
 
 def main():
     args = parse_args()
@@ -93,12 +58,13 @@ def main():
     with tf.name_scope("Train"):
       with tf.variable_scope("Model"):
         model = LanguageModel(features=features, targets=None,
-                    mode=tf.contrib.learn.ModeKeys.INFER, params=params)
+                    mode="GENERATE", params=params)
 
     sv = tf.train.Supervisor(logdir=args.model_dir)
     with sv.managed_session() as session:
-        token_ids = generate(session, model, args.max_length, SOB_TOKEN_ID, temp=args.temp)
+        token_ids = session.run(model.output_tokens)[0]
 
+    print "Generated sample of length %d" % len(token_ids)
     if not args.output:
         print ' '.join(vocab.get_token(idx) for idx in token_ids)
     else:
