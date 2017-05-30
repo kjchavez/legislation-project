@@ -60,21 +60,22 @@ def main():
     with tf.name_scope("Train"):
       with tf.variable_scope("Model"):
         model = LanguageModel(features=features, targets=None,
-                    mode=tf.contrib.learn.ModeKeys.INFER, params=params)
+                    mode="GENERATE", params=params)
 
     sv = tf.train.Supervisor(logdir=args.model_dir)
     with sv.managed_session() as session:
       session.graph._unsafe_unfinalize()
-      predict_signature = \
+      generate_signature = \
         tf.saved_model.signature_def_utils.build_signature_def(
-              {'input_token': tf.saved_model.utils.build_tensor_info(token_ph)},
-              {'probs':
-                  tf.saved_model.utils.build_tensor_info(model.token_probability)},
+                {'temp' :
+                    tf.saved_model.utils.build_tensor_info(model.temperature)},
+              {'tokens':
+                  tf.saved_model.utils.build_tensor_info(model.output_tokens)},
               method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME)
       builder.add_meta_graph_and_variables(session,
           [tf.saved_model.tag_constants.SERVING],
           signature_def_map={
-              "next_token": predict_signature,
+              "GenerateSample": generate_signature,
           })
 
 

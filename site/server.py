@@ -25,6 +25,16 @@ def get_probs(token):
     probs = list(response.outputs['probs'].float_val)
     return probs
 
+def get_sample(temp):
+    request = client.PredictRequest()
+    request.model_spec.name = 'lm'
+    request.model_spec.signature_name = "GenerateSample"
+    request.inputs['temp'].CopyFrom(
+        tf.contrib.util.make_tensor_proto([temp], shape=[], dtype=tf.float32))
+    response = stub.Predict(request, 5.0)
+    token_ids = list(response.outputs['tokens'].int_val)
+    return token_ids
+
 app = Flask(__name__)
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
@@ -40,11 +50,10 @@ def query():
 count = 1
 @app.route("/generate")
 def generate():
-    global count
     result = {}
-    result['text'] = "Generated text #%d." % count
-    count += 1
     print "Params data:", request.args
     temp = float(request.args.get("temp", 1.0))
-    print "temp =", temp
+    sample = get_sample(temp)
+    # TODO(kjchavez): Need vocabulary!
+    result['text'] = str(sample) 
     return jsonify(result)

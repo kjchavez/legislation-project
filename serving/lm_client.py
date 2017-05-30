@@ -39,7 +39,7 @@ import tfserving_client as client
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--concurrency", type=int, default=1)
-    parser.add_argument("--num_tests", type=int, default=100)
+    parser.add_argument("--num_tests", type=int, default=1)
     parser.add_argument("--server", default='')
     parser.add_argument("--token", type=int, default=3)
     parser.add_argument("--work_dir", default="/tmp")
@@ -113,7 +113,7 @@ def _create_rpc_callback(label, result_counter):
       sys.stdout.write('.')
       sys.stdout.flush()
       response = numpy.array(
-          result_future.result().outputs['probs'].float_val)
+          result_future.result().outputs['tokens'].int_val)
       print(result_future.result().outputs.keys())
       print(response)
 
@@ -144,11 +144,11 @@ def do_inference(hostport, work_dir, concurrency, num_tests):
   for _ in range(num_tests):
     request = client.PredictRequest()
     request.model_spec.name = 'lm'
-    request.model_spec.signature_name = "next_token"
-    request.inputs['input_token'].CopyFrom(
-        tf.contrib.util.make_tensor_proto([[FLAGS.token]], shape=[1, 1]))
+    request.model_spec.signature_name = "GenerateSample"
+    request.inputs['temp'].CopyFrom(
+        tf.contrib.util.make_tensor_proto([1.0], shape=[], dtype=tf.float32))
     result_counter.throttle()
-    result_future = stub.Predict.future(request, 5.0)  # 5 seconds
+    result_future = stub.Predict.future(request, 120.0)  # 5 seconds
     result_future.add_done_callback(
         _create_rpc_callback(None, result_counter))
   return result_counter.get_error_rate()
