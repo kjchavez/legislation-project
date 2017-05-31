@@ -25,6 +25,16 @@ def get_probs(token):
     probs = list(response.outputs['probs'].float_val)
     return probs
 
+
+def _format_for_html(tokens):
+    # TODO(kjchavez): This is not the nicest format. We should probably do
+    # things like: ( a ) -> (a)
+    text = ' '.join(tokens)
+    r = '<br />'
+    text.replace('\r\n',r).replace('\n\r',r).replace('\r',r).replace('\n',r)
+    return text
+
+
 def get_sample(temp):
     request = client.PredictRequest()
     request.model_spec.name = 'lm'
@@ -32,8 +42,8 @@ def get_sample(temp):
     request.inputs['temp'].CopyFrom(
         tf.contrib.util.make_tensor_proto([temp], shape=[], dtype=tf.float32))
     response = stub.Predict(request, 5.0)
-    token_ids = list(response.outputs['tokens'].int_val)
-    return token_ids
+    tokens = list(response.outputs['tokens'].string_val)
+    return _format_for_html(tokens)
 
 app = Flask(__name__)
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
@@ -55,5 +65,5 @@ def generate():
     temp = float(request.args.get("temp", 1.0))
     sample = get_sample(temp)
     # TODO(kjchavez): Need vocabulary!
-    result['text'] = str(sample) 
+    result['text'] = sample
     return jsonify(result)

@@ -152,6 +152,9 @@ class LanguageModel(object):
     if is_training and keep_prob < 1:
       inputs = tf.nn.dropout(inputs, keep_prob)
 
+    mapping_string = tf.constant(params['vocab'])
+    self.table = tf.contrib.lookup.index_to_string_table_from_tensor(
+                mapping_string, default_value="UNKNOWN")
     if mode == "GENERATE":
         # We need to feed an input at each step from the output of the previous
         # step.
@@ -182,7 +185,8 @@ class LanguageModel(object):
        impute_finished=True,
        maximum_iterations=1000)
 
-    self.output_tokens = outputs.sample_id
+    self.output_token_ids = outputs.sample_id
+    self.output_tokens = self.table.lookup(tf.to_int64(outputs.sample_id))
     logits = outputs.rnn_output
 
     self._final_state = state

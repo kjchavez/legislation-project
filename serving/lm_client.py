@@ -113,8 +113,9 @@ def _create_rpc_callback(label, result_counter):
       sys.stdout.write('.')
       sys.stdout.flush()
       response = numpy.array(
-          result_future.result().outputs['tokens'].int_val)
+          result_future.result().outputs['tokens'].string_val)
       print(result_future.result().outputs.keys())
+      print(result_future.result().outputs['tokens'])
       print(response)
 
     result_counter.inc_done()

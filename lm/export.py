@@ -49,6 +49,7 @@ def main():
     # This is so we can extract the probability distribution over tokens after
     # a single step and employ a sampling strategy of our choosing.
     params['unroll_length'] = 1
+    params['vocab'] = vocab.ordered_tokens()
 
     token_ph = tf.placeholder(dtype=tf.int32, shape=(params['batch_size'],
                                                      params['unroll_length']))
@@ -74,6 +75,7 @@ def main():
               method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME)
       builder.add_meta_graph_and_variables(session,
           [tf.saved_model.tag_constants.SERVING],
+          legacy_init_op=tf.tables_initializer(),
           signature_def_map={
               "GenerateSample": generate_signature,
           })

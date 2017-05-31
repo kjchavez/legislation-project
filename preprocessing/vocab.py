@@ -38,6 +38,9 @@ class Vocabulary(object):
             self.id_to_word.append(token)
             idx += 1
 
+    def ordered_tokens(self):
+        return self.id_to_word
+
     # TODO(kjchavez): Save the 'tokenize' function as well!
     def saveto(self, filename):
         with codecs.open(filename, 'w', encoding='utf-8') as fp:

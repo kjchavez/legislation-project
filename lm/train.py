@@ -54,10 +54,13 @@ def main():
   # TODO(kjchavez): A nice way for the model to declare required hyper params.
 
   save_params(params, args.model_dir)
+  vocab = reader.load_vocab(args.data_path)
+  params['vocab'] = vocab.ordered_tokens()
 
   eval_params = get_params(args.hparams)
   eval_params['batch_size'] = 1
   eval_params['unroll_length'] = 1
+  eval_params['vocab'] = vocab.ordered_tokens()
 
   with tf.Graph().as_default():
 

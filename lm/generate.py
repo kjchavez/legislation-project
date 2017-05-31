@@ -50,6 +50,7 @@ def main():
     # This is so we can extract the probability distribution over tokens after
     # a single step and employ a sampling strategy of our choosing.
     params['unroll_length'] = 1
+    params['vocab'] = vocab.ordered_tokens()
 
     token_ph = tf.placeholder(dtype=tf.int32, shape=(params['batch_size'],
                                                      params['unroll_length']))
@@ -62,15 +63,15 @@ def main():
 
     sv = tf.train.Supervisor(logdir=args.model_dir)
     with sv.managed_session() as session:
-        token_ids = session.run(model.output_tokens, feed_dict =
+        tokens = session.run(model.output_tokens, feed_dict =
                 {model.temperature: args.temp})[0]
 
-    print "Generated sample of length %d" % len(token_ids)
+    print "Generated sample of length %d" % len(tokens)
     if not args.output:
-        print ' '.join(vocab.get_token(idx) for idx in token_ids)
+        print ' '.join(token for token in tokens)
     else:
         with open(args.output, 'w') as fp:
-            fp.write(' '.join(vocab.get_token(idx) for idx in token_ids))
+            fp.write(' '.join(token for token in tokens))
 
 if __name__ == "__main__":
     main()

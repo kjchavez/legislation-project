@@ -17,7 +17,8 @@ function sliderToTemp(sliderVal) {
 function updateText (temp) {
   var generateUrl = "http://thezoo.noip.me:5000/generate?temp="+temp
   d3.json(generateUrl, function (json) {
-    textContainer.text(json.text);
+    str = json.text.replace(/(?:\r\n|\r|\n)/g, '<br />');
+    textContainer.html(str);
   })
 }
 // To avoid flooding the server.
