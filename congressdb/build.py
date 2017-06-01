@@ -91,7 +91,7 @@ def build_new_vocab(src, bill_type, bill_version, congress=None,
     return vocab
 
 def _create_default_output_dirname(args):
-    dirname = "congress-%d" % args.congress
+    dirname = "congress-%s" % (str(args.congress) if args.congress else "all")
     if args.type != '*':
         dirname += '-' + args.type
     if args.version != '*':
