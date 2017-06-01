@@ -6,7 +6,7 @@ import tensorflow as tf
 import numpy as np
 import threading
 
-class SequentialInputData(object):
+class QueuedInputData(object):
     def __init__(self, data_generator, data_shape, target_shape, queue_capacity=100,
             dtype=tf.float32, enqueue_batch_size=10):
         self.data_generator = data_generator
@@ -62,7 +62,7 @@ def sanity_check():
             yield x, y
 
     sess = tf.Session()
-    d = SequentialInputData(fake_data_gen(), data_shape=(32, 20),
+    d = QueuedInputData(fake_data_gen(), data_shape=(32, 20),
             target_shape=(32, 20), enqueue_batch_size=10, dtype=tf.int32)
     d.start_enqueue_thread(sess)
 
