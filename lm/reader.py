@@ -1,6 +1,7 @@
 from __future__ import division
 from __future__ import print_function
 
+import numpy as np
 import tensorflow as tf
 from os.path import join
 from preprocessing.vocab import Vocabulary
@@ -22,6 +23,43 @@ def load_vocab(data_path):
     vocab_file = join(data_path, 'vocabulary.txt')
     return Vocabulary.fromfile(vocab_file)
 
+class LegislationDataset(object):
+    def __init__(self, datadir):
+        self.train, self.valid, self.test, self.vocab = _raw_data(datadir)
+
+    def batch_generator(self, source, batch_size, num_steps, forever=False):
+        raw_data = np.array(source)
+        data_len = len(raw_data)
+        batch_len = data_len // batch_size
+        data = np.reshape(raw_data[0 : batch_size * batch_len],
+                        [batch_size, batch_len])
+        epoch_size = (batch_len - 1) // num_steps
+        def _generator():
+            i = 0
+            while True:
+                x = data[:, i*num_steps:(i+1)*num_steps]
+                y = data[:, (i*num_steps + 1):((i+1)*num_steps+1)]
+                yield x, y
+                i += 1
+                if i == epoch_size:
+                    if forever:
+                        i = 0
+                    else:
+                        break
+
+        return _generator
+
+    def train_batch_generator(self, batch_size, num_steps):
+        return self.batch_generator(self.train, batch_size=batch_size,
+                num_steps=num_steps)
+
+    def valid_batch_generator(self, batch_size, num_steps):
+        return self.batch_generator(self.valid, batch_size=batch_size,
+                num_steps=num_steps)
+
+    def test_batch_generator(self, batch_size, num_steps):
+        return self.batch_generator(self.test, batch_size=batch_size,
+                num_steps=num_steps)
 
 def example_producer(raw_data, batch_size, num_steps, name=None):
   """Iterate on the raw token ids.
