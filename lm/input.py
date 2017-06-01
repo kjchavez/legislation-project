@@ -7,15 +7,17 @@ import numpy as np
 import threading
 
 class SequentialInputData(object):
-    def __init__(self, raw_data_generator, batch_size, num_steps, queue_capacity=100,
+    def __init__(self, data_generator, data_shape, target_shape, queue_capacity=100,
             dtype=tf.float32, enqueue_batch_size=10):
-        self.raw_data_generator = raw_data_generator
-        enqueue_shape = [enqueue_batch_size, batch_size, num_steps]
-        queue_input_data = tf.placeholder(dtype, shape=enqueue_shape)
-        queue_input_target = tf.placeholder(dtype, shape=enqueue_shape)
+        self.data_generator = data_generator
+        data_batch_shape = (enqueue_batch_size,) + tuple(data_shape)
+        target_batch_shape = (enqueue_batch_size,) + tuple(target_shape)
+
+        queue_input_data = tf.placeholder(dtype, shape=data_batch_shape)
+        queue_input_target = tf.placeholder(dtype, shape=target_batch_shape)
 
         self._queue = tf.FIFOQueue(capacity=queue_capacity, dtypes=[dtype, dtype],
-                shapes=[[batch_size, num_steps], [batch_size, num_steps]])
+                shapes=[data_shape, target_shape])
         self.enqueue_op = self._queue.enqueue_many([queue_input_data, queue_input_target])
         self.x, self.y = self._queue.dequeue()
 
@@ -31,7 +33,7 @@ class SequentialInputData(object):
 
         print("starting to write into queue")
         try:
-          curr_data, curr_target = next(self.raw_data_generator)
+          curr_data, curr_target = next(self.data_generator)
         except StopIteration:
             print("Reached end of generator.")
             break
@@ -60,7 +62,8 @@ def sanity_check():
             yield x, y
 
     sess = tf.Session()
-    d = SequentialInputData(fake_data_gen(), 32, 20, dtype=tf.int32)
+    d = SequentialInputData(fake_data_gen(), data_shape=(32, 20),
+            target_shape=(32, 20), enqueue_batch_size=10, dtype=tf.int32)
     d.start_enqueue_thread(sess)
 
     coord = tf.train.Coordinator()
