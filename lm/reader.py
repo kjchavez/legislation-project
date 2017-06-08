@@ -23,43 +23,47 @@ def load_vocab(data_path):
     vocab_file = join(data_path, 'vocabulary.txt')
     return Vocabulary.fromfile(vocab_file)
 
+class BatchedDataset(object):
+    def __init__(self, raw_data, batch_size, num_steps, forever=False):
+        raw_data = np.array(raw_data)
+        data_len = len(raw_data)
+        batch_len = data_len // batch_size
+        self.data = np.reshape(raw_data[0 : batch_size * batch_len],
+                               [batch_size, batch_len])
+        self.epoch_size = (batch_len - 1) // num_steps
+        self.num_steps = num_steps
+        self.batch_size = batch_size
+        self.forever = forever
+
+    def generator(self):
+        i = 0
+        while True:
+            x = self.data[:, i*self.num_steps:(i+1)*self.num_steps]
+            y = self.data[:, (i*self.num_steps + 1):((i+1)*self.num_steps+1)]
+            yield x, y
+            i += 1
+            if i == self.epoch_size:
+                if self.forever:
+                    i = 0
+                else:
+                    break
+
+
 class LegislationDataset(object):
     def __init__(self, datadir):
         self.train, self.valid, self.test, self.vocab = _raw_data(datadir)
 
-    def batch_generator(self, source, batch_size, num_steps, forever=False):
-        raw_data = np.array(source)
-        data_len = len(raw_data)
-        batch_len = data_len // batch_size
-        data = np.reshape(raw_data[0 : batch_size * batch_len],
-                        [batch_size, batch_len])
-        epoch_size = (batch_len - 1) // num_steps
-        def _generator():
-            i = 0
-            while True:
-                x = data[:, i*num_steps:(i+1)*num_steps]
-                y = data[:, (i*num_steps + 1):((i+1)*num_steps+1)]
-                yield x, y
-                i += 1
-                if i == epoch_size:
-                    if forever:
-                        i = 0
-                    else:
-                        break
-
-        return _generator
-
-    def train_batch_generator(self, batch_size, num_steps):
-        return self.batch_generator(self.train, batch_size=batch_size,
-                num_steps=num_steps)
+    def train_batch_generator(self, batch_size, num_steps, forever=False):
+        return BatchedDataset(self.train, batch_size, num_steps,
+                forever=forever)
 
     def valid_batch_generator(self, batch_size, num_steps):
-        return self.batch_generator(self.valid, batch_size=batch_size,
-                num_steps=num_steps)
+        return BatchedDataset(self.valid, batch_size, num_steps,
+                forever=False)
 
     def test_batch_generator(self, batch_size, num_steps):
-        return self.batch_generator(self.test, batch_size=batch_size,
-                num_steps=num_steps)
+        return BatchedDataset(self.test, batch_size, num_steps,
+                forever=False)
 
 def example_producer(raw_data, batch_size, num_steps, name=None):
   """Iterate on the raw token ids.

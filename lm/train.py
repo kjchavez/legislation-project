@@ -47,8 +47,7 @@ def main():
   if args.reset and os.path.exists(args.model_dir):
 	shutil.rmtree(args.model_dir)
 
-  raw_data = reader._raw_data(args.data_path)
-  train_data, valid_data, test_data, vocab_data = raw_data
+  dataset = reader.LegislationDataset(args.data_path)
 
   params = get_params(args.hparams)
   # TODO(kjchavez): A nice way for the model to declare required hyper params.
@@ -63,37 +62,47 @@ def main():
   eval_params['vocab'] = vocab.ordered_tokens()
 
   with tf.Graph().as_default():
-
     # TODO(kjchavez): This should move into the model?
     initializer = tf.random_uniform_initializer(-params['init_scale'],
                                                 params['init_scale'])
 
     with tf.name_scope("Train"):
-      train_input = InputData(params=params, data=train_data, name="TrainInput")
+      train_batches = dataset.train_batch_generator(params['batch_size'],
+                                                    params['unroll_length'])
+      train_input = InputData(params=params,
+                              batched_dataset=train_batches,
+                              name="TrainInput")
       with tf.variable_scope("Model", reuse=None, initializer=initializer):
         m = LanguageModel(mode=ModeKeys.TRAIN, params=params,
-                features=train_input.input_data, targets=train_input.targets,
-                epoch_size=train_input.epoch_size)
+                features=train_input.input_data, targets=train_input.targets)
 
     with tf.name_scope("Valid"):
-      valid_input = InputData(params=params, data=valid_data, name="ValidInput")
+      valid_batches = dataset.valid_batch_generator(params['batch_size'],
+                                                    params['unroll_length'])
+      valid_input = InputData(params=params,
+                              batched_dataset=valid_batches,
+                              name="ValidInput")
       with tf.variable_scope("Model", reuse=True, initializer=initializer):
         mvalid = LanguageModel(mode=ModeKeys.EVAL, params=params,
-                features=valid_input.input_data, targets=valid_input.targets,
-                epoch_size=valid_input.epoch_size)
+                features=valid_input.input_data, targets=valid_input.targets)
 
 
-    sv = tf.train.Supervisor(logdir=args.model_dir, save_summaries_secs=10,
-            save_model_secs=10)
+    sv = tf.train.Supervisor(logdir=args.model_dir,
+                             save_summaries_secs=10,
+                             save_model_secs=10)
     with sv.managed_session() as session:
+      train_input.start_queue_thread(session)
       for i in range(params['max_max_epoch']):
         train_perplexity = run_epoch(session, m, eval_op=m.train_op,
+                                     epoch_size=train_batches.epoch_size,
                                      verbose=True)
         print("Epoch: %d Train Perplexity: %.3f" % (i + 1, train_perplexity))
 
-        valid_perplexity = run_epoch(session, mvalid)
+        valid_perplexity = run_epoch(session, mvalid,
+                                     epoch_size=valid_batches.epoch_size)
         print("Epoch: %d Valid Perplexity: %.3f" % (i + 1, valid_perplexity))
 
+      train_input.shutdown(session)
 
 if __name__ == "__main__":
     main()

@@ -23,6 +23,7 @@ from __future__ import division
 from __future__ import print_function
 
 import lm.reader as reader
+from lm.input import QueuedInputData
 
 import lm.opt as opt
 import inspect
@@ -44,15 +45,36 @@ OOV_ID = 0
 SOB_TOKEN_ID = 1
 EOB_TOKEN_ID = 2
 
+# TODO(kjchavez): This doesn't belong in this file. Also may be redundant now
+# that we have other input classes.
 class InputData(object):
   """The input data."""
 
-  def __init__(self, params, data, name=None):
+  def __init__(self, params, batched_dataset, name=None):
     self.batch_size = batch_size = params['batch_size']
     self.num_steps = num_steps = params['unroll_length']
-    self.epoch_size = ((len(data) // batch_size) - 1) // num_steps
-    self.input_data, self.targets = reader.example_producer(
-        data, batch_size, num_steps, name=name)
+
+    # We're only adding a single batch to the queue at a time, but first
+    # dimension of the 'enqueue batch' should reflect that.
+    def expand_dims():
+        for x, y in batched_dataset.generator():
+            yield (np.expand_dims(x, axis=0), np.expand_dims(y, axis=0))
+
+    qid = QueuedInputData(expand_dims(),
+                          data_shape=(batch_size, num_steps),
+                          target_shape=(batch_size, num_steps),
+                          dtype=tf.int32,
+                          enqueue_batch_size=1)
+    self.input_data = {'tokens': qid.x}
+    self.targets = qid.y
+    self.epoch_size = batched_dataset.epoch_size
+    self.qid = qid
+
+  def start_queue_thread(self, sess):
+      self.qid.start_enqueue_thread(sess)
+
+  def shutdown(self, sess):
+      self.qid.shutdown(sess)
 
 
 def add_recall_at_k_summaries(logits, targets, ks=[1, 5, 10]):
@@ -111,11 +133,10 @@ class SamplingEmbeddingHelper(tf.contrib.seq2seq.GreedyEmbeddingHelper):
 class LanguageModel(object):
   """The Language model."""
 
-  def __init__(self, features, targets, mode, params, epoch_size=None, dtype=tf.float32):
+  def __init__(self, features, targets, mode, params, dtype=tf.float32):
     tokens = features['tokens']
 
     self._params = params
-    self.epoch_size = epoch_size
     batch_size = params['batch_size']
     num_steps = params['unroll_length']
     size = params['embedding_dim']
@@ -237,7 +258,7 @@ class LanguageModel(object):
     return self._train_op
 
 
-def run_epoch(session, model, eval_op=None, verbose=False):
+def run_epoch(session, model, epoch_size, eval_op=None, verbose=False):
   """Runs the model on the given data."""
   start_time = time.time()
   costs = 0.0
@@ -251,7 +272,7 @@ def run_epoch(session, model, eval_op=None, verbose=False):
   if eval_op is not None:
     fetches["eval_op"] = eval_op
 
-  for step in range(model.epoch_size):
+  for step in range(epoch_size):
     feed_dict = {}
     for i, (c, h) in enumerate(model.initial_state):
       feed_dict[c] = state[i].c
@@ -264,9 +285,9 @@ def run_epoch(session, model, eval_op=None, verbose=False):
     costs += cost
     iters += model.num_steps
 
-    if verbose and step % (model.epoch_size // 100) == 10:
+    if verbose and step % (epoch_size // 100) == 10:
       print("%.3f perplexity: %.3f speed: %.0f wps" %
-            (step * 1.0 / model.epoch_size, np.exp(costs / iters),
+            (step * 1.0 / epoch_size, np.exp(costs / iters),
              iters * model.batch_size / (time.time() - start_time)))
 
   return np.exp(costs / iters)
