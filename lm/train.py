@@ -104,6 +104,7 @@ def main():
         print("Epoch: %d Valid Perplexity: %.3f" % (i + 1, valid_perplexity))
 
       train_input.shutdown(session)
+      valid_input.shutdown(session)
 
 if __name__ == "__main__":
     main()

@@ -41,6 +41,7 @@ def main():
             params = yaml.load(fp)
 
     params['vocab_size'] = vocab.size()
+    params['vocab'] = vocab.ordered_tokens()
 
     # We could, in principle, generate a batch of random samples. For
     # simplicity we won't.
@@ -50,20 +51,25 @@ def main():
     # a single step and employ a sampling strategy of our choosing.
     params['unroll_length'] = 1
 
-    raw_data = reader._raw_data(args.data_path)
-    _, _, test_data, vocab_data = raw_data
+    dataset = reader.LegislationDataset(args.data_path)
+    vocab_data = reader.load_vocab(args.data_path)
     with tf.name_scope("Test"):
-      test_input = InputData(params=params, data=test_data, name="TestInput")
+      test_batches = dataset.test_batch_generator(1, 1)
+      test_input = InputData(params=params,
+                             batched_dataset=test_batches,
+                             name="TestInput")
       with tf.variable_scope("Model"):
         mtest = LanguageModel(mode=tf.contrib.learn.ModeKeys.EVAL, params=params,
                          features=test_input.input_data,
-                         targets=test_input.targets,
-                         epoch_size=test_input.epoch_size)
+                         targets=test_input.targets)
 
     sv = tf.train.Supervisor(logdir=args.model_dir)
     with sv.managed_session() as session:
-        test_perplexity = run_epoch(session, mtest, verbose=True)
+        test_input.start_queue_thread(session)
+        test_perplexity = run_epoch(session, mtest, verbose=True,
+                epoch_size=test_batches.epoch_size)
         print ("Test set perplexity: %.3f" % test_perplexity)
+        test_input.shutdown(session)
 
 if __name__ == "__main__":
     main()

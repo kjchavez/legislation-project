@@ -53,7 +53,22 @@
         <h1 class="text-center">The Language of Legislation</h1>
         <p>The GovTrack dataset provides the text of bills introduced on the floor of both the House and the Senate. There are a lot of interesting applications of this data, but first, let's get a sense of the language used by our legislators. We built a language model of bills as they were introduced (before any modifications) to the House of representatives.</p>
 
-	<h2>Playing with D3</h2>
+	<h2>The Data</h2>
+	<p>
+	We extracted all of the bills introduced by the House of Representatives from the 103rd Congress to the 115th Congress (1993 - 2017). A few quick stats:
+	<ul>
+	  <li>72,243 individual bills</li>
+	  <li>198,145,728 tokens (words or special punctuation)</li>
+	  <li>Average bill length: 2740 tokens</li>
+	</ul>
+
+	There are a few <strong>really</strong> long <a href="http://www.politico.com/blogs/on-congress/2009/11/gop-wrote-5-of-10-longest-bills-023067">bills</a>, but most are captured in the cumulative distribution below. A point (x, y) on this plot states that a fraction <var>y</var> of bills are less than or equal to <var>x</var> tokens (~words) long.
+	<img src="static/res/bill_length.png" class="img-responsive">
+	</p>
+
+	<h2>The Model</h2>
+
+	<h2>The Fun Interactive Part</h2>
 	<p>
 	One good way to get a sense for the language model we've trained is to look at samples from it. You can change the temperature to increase/decrease the variability in the sample. 
 	</p>
