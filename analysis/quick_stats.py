@@ -61,7 +61,6 @@ def main():
     plt.axis([0, 50000, 0.0, 1.0])
     plt.grid(True)
     plt.savefig("bill_length.png")
-    print '\n'.join(str(x) for x in lengths)
 
 if __name__ == "__main__":
     main()
