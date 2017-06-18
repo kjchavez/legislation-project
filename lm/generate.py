@@ -51,6 +51,7 @@ def main():
     # a single step and employ a sampling strategy of our choosing.
     params['unroll_length'] = 1
     params['vocab'] = vocab.ordered_tokens()
+    params['max_sample_length'] = args.max_length
 
     token_ph = tf.placeholder(dtype=tf.int32, shape=(params['batch_size'],
                                                      params['unroll_length']))

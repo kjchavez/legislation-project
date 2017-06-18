@@ -38,6 +38,7 @@ import yaml
 logging = tf.logging
 ModeKeys = tf.contrib.learn.ModeKeys
 DEFAULT_MAX_GRAD_NORM = 5
+DEFAULT_MAX_SAMPLE_LENGTH = 1000
 
 # TODO(kjchavez): Bundle these with the model or at least in a separate
 # constants file.
@@ -204,7 +205,8 @@ class LanguageModel(object):
        decoder=decoder,
        output_time_major=False,
        impute_finished=True,
-       maximum_iterations=1000)
+       maximum_iterations=params.get('max_sample_length',
+           DEFAULT_MAX_SAMPLE_LENGTH))
 
     self.output_token_ids = outputs.sample_id
     self.output_tokens = self.table.lookup(tf.to_int64(outputs.sample_id))

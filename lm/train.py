@@ -92,6 +92,7 @@ def main():
                              save_model_secs=10)
     with sv.managed_session() as session:
       train_input.start_queue_thread(session)
+      valid_input.start_queue_thread(session)
       for i in range(params['max_max_epoch']):
         train_perplexity = run_epoch(session, m, eval_op=m.train_op,
                                      epoch_size=train_batches.epoch_size,
