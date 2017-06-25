@@ -5,6 +5,7 @@ Exploratory project using data from:
 * U.S. legal code
 * ProPublica Congress API
 * congress.gov
+* https://www.govtrack.us/developers/data
 
 See also: [`congressapi`](https://github.com/kjchavez/congressapi)
 
@@ -12,6 +13,11 @@ See also: [`congressapi`](https://github.com/kjchavez/congressapi)
 
 * https://www.aclweb.org/anthology/D/D16/D16-1221.pdf
 * Political Science Dept. at MIT: http://cwarshaw.scripts.mit.edu/papers/CandidatePositions160810.pdf
+
+## Loading data into MongoDB
+
+Use `congressdb.convert2mongod` to import to bulk Congress data into a MongoDB database. This vastly simplifies the process of
+generating training data sets later.
 
 ## Build language model
 
