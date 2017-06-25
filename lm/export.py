@@ -78,6 +78,7 @@ def main():
           legacy_init_op=tf.tables_initializer(),
           signature_def_map={
               "GenerateSample": generate_signature,
+              tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY: generate_signature,
           })
 
 

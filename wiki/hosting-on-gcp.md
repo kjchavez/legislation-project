@@ -40,3 +40,42 @@ Enabled Compute Engine with region us-west-1a. Needed.
 Set up Application Default Credentials.  tl;dr; user-independent auth credentials.
 
 Seems like a lot of configuration will be saved in `/home/kevin/.config/gcloud/`
+
+## Export a SavedModel locally
+
+See the `lm/export.py` file for an example. Doesn't matter how it's created as long as it has a `serving_default` serving signature.
+
+
+## Some Gotchas About the Model
+* Requires that data have **instance keys** on the input, which are passed through to the output unaltered. So that distributed processing works.
+* If input has **binary data**, the input/output alias for that value has to end in **_bytes**. It will be base-64 encoded when the request/response goes over the network.
+
+
+## Upload model to Google Cloud Storage
+
+https://cloud.google.com/storage/docs/object-basics
+
+1. Create a bucket for the project.
+
+2. Then using `gsutil`
+
+```bash
+gsutil cp -r saved-models/[export_name]/1 gs://[DESTINATION_BUCKET_NAME]/[model_name]
+```
+
+## Create a Model on Cloud ML Engine
+
+A *model* is just a container for *versions*. The versions are the actual models.
+Create a version with the UI, point to the cloud storage version directory.
+
+Query the version using `gcloud`.
+
+```
+gcloud ml-engine predict --model $MODEL_NAME --version $VERSION_NAME --json-instances $INPUT_DATA_FILE
+```
+
+where the input data file for me looked like this:
+
+```
+{ "temp": 1.0  }
+```

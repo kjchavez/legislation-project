@@ -3,6 +3,7 @@ house-introduced-114/
 congress-*/
 output/
 .ipynb_checkpoints/
+saved-models/
 snapshots/
 *.pyc
 *.txt
