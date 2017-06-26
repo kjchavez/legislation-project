@@ -8,6 +8,8 @@ snapshots/
 *.pyc
 *.txt
 *~
+env/
+app/lib/
 
 # Personal files not for repo.
 TODO.md

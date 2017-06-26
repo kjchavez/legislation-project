@@ -9,6 +9,9 @@ Exploratory project using data from:
 
 See also: [`congressapi`](https://github.com/kjchavez/congressapi)
 
+Interactive results will be hosted at us-legislation-data.appspot.com.
+
+
 ## Related Work
 
 * https://www.aclweb.org/anthology/D/D16/D16-1221.pdf
@@ -144,3 +147,15 @@ cd site
 
 And then in a browser go to `localhost:5000`. You should see a poor man's bar chart.
 Honestly, it's awful right now. Just followed the intro D3 tutorial. But just you wait.
+
+## Deploying the Web App
+
+It should all be contained in the app/ directory. pip install all requirements.txt in a virtual env
+
+```
+virtualenv env 
+source env/bin/activate
+pip install -t lib -r requirements.txt
+```
+
+The `-t lib` is important!

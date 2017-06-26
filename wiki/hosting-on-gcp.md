@@ -41,6 +41,8 @@ Set up Application Default Credentials.  tl;dr; user-independent auth credential
 
 Seems like a lot of configuration will be saved in `/home/kevin/.config/gcloud/`
 
+NOTE: Looks like the /usr/lib/google-cloud-sdk/bin/ wasn't permanently added to my path. Might want to edit bashrc manually.
+
 ## Export a SavedModel locally
 
 See the `lm/export.py` file for an example. Doesn't matter how it's created as long as it has a `serving_default` serving signature.
@@ -79,3 +81,12 @@ where the input data file for me looked like this:
 ```
 { "temp": 1.0  }
 ```
+
+## Hosting the rest on App Engine
+
+* Need to install app-engine-python. At least to have a python app.
+* Make sure you're forwarding some port from your remote machine (if you have one) so the dev_appserver.py is actually useful.
+* If using python, make sure to read the instructions about virtualenv and the appconfig file *carefully*: https://cloud.google.com/appengine/docs/standard/python/getting-started/python-standard-env 
+
+## Questions
+* Do I get charged per app deployment?
