@@ -9,7 +9,7 @@ Exploratory project using data from:
 
 See also: [`congressapi`](https://github.com/kjchavez/congressapi)
 
-Interactive results will be hosted at us-legislation-data.appspot.com.
+Interactive results will be hosted at [us-legislation-data.appspot.com](https://us-legislation-data.appspot.com)
 
 
 ## Related Work
