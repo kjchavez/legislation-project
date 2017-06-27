@@ -87,6 +87,7 @@ where the input data file for me looked like this:
 * Need to install app-engine-python. At least to have a python app.
 * Make sure you're forwarding some port from your remote machine (if you have one) so the dev_appserver.py is actually useful.
 * If using python, make sure to read the instructions about virtualenv and the appconfig file *carefully*: https://cloud.google.com/appengine/docs/standard/python/getting-started/python-standard-env 
+* Relative URLs are important! Otherwise you might end up with the dreaded Access-Control-Allow-Origin error. There is a way around it by allowing cross-domain resource loading. I never quite figured out how.
 
 ## Questions
 * Do I get charged per app deployment?
