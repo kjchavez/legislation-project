@@ -15,7 +15,7 @@ function sliderToTemp(sliderVal) {
 }
 
 function updateText (temp) {
-  var generateUrl = "https://us-legislation-data.appspot.com/generate?temp="+temp
+  var generateUrl = "/generate?temp="+temp
   d3.json(generateUrl, function (json) {
     str = json.text.replace(/(?:\r\n|\r|\n)/g, '<br />');
     textContainer.html(str);
