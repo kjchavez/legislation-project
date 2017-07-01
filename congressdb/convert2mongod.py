@@ -6,16 +6,19 @@ import glob
 import json
 import logging
 import os
+from os.path import join
 import sys
 import pymongo
+import yaml
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--congress_data", required=True)
+    parser.add_argument("--govtrack_root", required=True)
     parser.add_argument("--database_name", '-d', default="congress")
     parser.add_argument("--mongodb_uri", default='mongodb://localhost:27017/')
     parser.add_argument("--bills", action="store_true")
     parser.add_argument("--votes", action="store_true")
+    parser.add_argument("--members", action="store_true")
     parser.add_argument("--reset", action="store_true", help="if true, drops "
                         "the mentioned collections before starting to "
                         "populate.")
@@ -91,6 +94,9 @@ def _batched_insert(path, collection, augment_fn=None,
         collection.insert_many(data)
         del data
 
+# ========================================================================
+#  Bills 
+#
 def _augment_bill(bill, d):
     if 'bill_id' not in bill:
         logging.warning("Warning: bill does not have id, skipping!")
@@ -108,6 +114,9 @@ def create_bills_collection(congress_data, mdb, batch=1000, dry_run=False):
     logging.info("Creating index over bill text...")
     mdb.bills.create_index([('text_versions.document', pymongo.TEXT)])
 
+# ========================================================================
+#  Votes
+#
 def _escape(key):
     escaped = key.replace('.', '[dot]')
     return escaped
@@ -134,25 +143,83 @@ def create_votes_collection(congress_data, mdb, batch=1000, dry_run=False):
     logging.info("Creating index over vote text...")
     mdb.votes.create_index([('question', pymongo.TEXT), ('subject', pymongo.TEXT)])
 
+# ========================================================================
+#  Members 
+#
+
+def _augment_member(member):
+    member['_id'] = member['id']['bioguide']
+    return member
+
+def update_with(collection, filename, dry_run=False):
+    with open(filename) as fp:
+        data = yaml.load(fp)
+
+    bulk = collection.initialize_unordered_bulk_op()
+    for entry in data:
+        _id = entry.pop('id')['bioguide']
+        if dry_run:
+            logging.info("Would update %s", _id)
+        else:
+            bulk.find({'_id': _id}).update({'$set': entry})
+
+    bulk.execute()
+
+def create_members_collection(legislators_path, mdb, dry_run=False):
+    with open(join(legislators_path, "legislators-historical.yaml")) as fp:
+        members = yaml.load(fp)
+        logging.info("Loaded legislators-historical.yaml")
+
+    ids = set(m['id']['bioguide'] for m in members)
+    if dry_run:
+        logging.info("Would have inserted %d members from historical.", len(members))
+    else:
+        mdb.members.insert_many([_augment_member(m) for m in members])
+        logging.info("Inserted %d historical legislators.", len(members))
+
+
+    with open(join(legislators_path, "legislators-current.yaml")) as fp:
+        current = yaml.load(fp)
+        current = [c for c in current if c['id']['bioguide'] not in ids]
+        if dry_run:
+            logging.info("Would have inserted %d from current.", len(current))
+        else:
+            mdb.members.insert_many([_augment_member(m) for m in current])
+            logging.info("Inserted %d additional current legislators.",
+                    len(current))
+
+    # Augment with social media data. 
+    update_with(mdb.members,
+                join(legislators_path, "legislators-social-media.yaml"),
+                dry_run=dry_run)
+    logging.info("Augmented with social media information.")
 
 def main():
     args = parse_args()
     client = pymongo.MongoClient(args.mongodb_uri)
     db = client[args.database_name]
 
+    congress_dir = os.path.join(args.govtrack_root, "congress")
     if args.bills:
         if args.reset:
             db.bills.drop()
         logging.info("BEGIN: Creating 'bills' collection.")
-        create_bills_collection(args.congress_data, db, dry_run=args.dry_run)
+        create_bills_collection(congress_dir, db, dry_run=args.dry_run)
         logging.info("END: Creating 'bills' collection.")
 
     if args.votes:
         if args.reset:
             db.votes.drop()
         logging.info("BEGIN: Creating 'votes' collection.")
-        create_votes_collection(args.congress_data, db, dry_run=args.dry_run)
+        create_votes_collection(congress_dir, db, dry_run=args.dry_run)
         logging.info("END: Creating 'votes' collection.")
+
+    if args.members:
+        if args.reset:
+            db.members.drop()
+        logging.info("BEGIN: Creating 'members' collection.")
+        path = os.path.join(args.govtrack_root, "congress-legislators")
+        create_members_collection(path, db, dry_run=args.dry_run)
 
 
 if __name__ == "__main__":
