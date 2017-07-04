@@ -1,0 +1,35 @@
+# Vote Prediction
+
+## Task
+
+> Given a member of Congress and a legislative proposal, predict whether they vote `Aye` or not.
+
+**Some important notes:**
+
+* We might have **no** historical data for that Congress member - for example, it's his/her first time in office. However, the model should still be able to provide a best estimate. 
+* 
+
+## Data
+
+The GovTrack dataset contains *roll call* vote data.
+
+We're only interest in votes on the **passage** of **bills** or **joint resolutions**. These are legislative proposals, which -- if passed -- have the force of law. Congress votes on a variety of other things (e.g. rules governing their internal processes) which we are not considering in this task.
+Some exploration of this data in `analysis/Votes.ipynb`.
+
+### Quick Stats ###
+
+* Spans more than 3500 roll calls.
+* Contains over 1 million individual votes.
+* 70.8% of the votes = Aye
+* 25.6% of the votes = Nay
+* 3.5% of the votes = Not Voting
+* <0.1% of the votes = Present
+
+
+## Baseline models
+
+A somewhat cynical, partisan, rule-based model would be...
+
+> If the sponsor and voter are in the same party, then predict they vote `aye`.
+
+With this we get ~75% accuracy. So this is the very base, the floor.
