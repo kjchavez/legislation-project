@@ -1,15 +1,18 @@
 import tensorflow as tf
 
+def feature_spec():
+    return {
+      'sponsor_party': tf.FixedLenFeature([], tf.string),
+      'member_party': tf.FixedLenFeature([], tf.string),
+      'voted_aye': tf.FixedLenFeature([], tf.int64)
+    }
+
 def read_and_decode(filename_queue):
   reader = tf.TFRecordReader()
   _, serialized_example = reader.read(filename_queue)
   features = tf.parse_single_example(
       serialized_example,
-      features={
-          'sponsor_party': tf.FixedLenFeature([], tf.string),
-          'member_party': tf.FixedLenFeature([], tf.string),
-          'voted_aye': tf.FixedLenFeature([], tf.int64),
-      })
+      features=feature_spec())
 
   return features
 
