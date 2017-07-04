@@ -30,5 +30,7 @@ def model_fn(features, labels, mode, params):  # config, model_dir):
         elif mode == ModeKeys.EVAL:
             loss = zero_one_loss(tf.to_int64(party_match), labels)
 
-        return EstimatorSpec(mode, predictions=predictions, loss=loss, train_op=train_op)
+        outputs = {'predict': tf.estimator.export.RegressionOutput(tf.to_float(predictions))}
+        return EstimatorSpec(mode, predictions=predictions, loss=loss, train_op=train_op,
+                             export_outputs=outputs)
 
