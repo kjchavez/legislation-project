@@ -26,6 +26,12 @@ Some exploration of this data in `analysis/Votes.ipynb`.
 * <0.1% of the votes = Present
 
 
+### Partitioning data
+
+We split the 3500 roll call votes into train/validation/test votes at ratios of 0.7 / 0.1 / 0.2.
+Running `create_dataset.py` will create these splits and record which bill is in which split in `data/METADATA`
+
+
 ## Baseline models
 
 A somewhat cynical, partisan, rule-based model would be...

@@ -28,6 +28,8 @@ def train(model_name, instance_name, train_filepattern, valid_filepattern, hpara
     estimator = tf.estimator.Estimator(model_fn, model_dir=model_dir,
                                        config=config, params=hparams)
 
+    # TODO(kjchavez): If we have a SessionRunHook equivalent of ValidationMonitor, then use that
+    # instead.
     while True:
         estimator.train(train_input_fn, max_steps=eval_every_n)
         metrics = estimator.evaluate(valid_input_fn)
@@ -46,5 +48,5 @@ def parse_args():
 
 args = parse_args()
 config = tf.estimator.RunConfig()
-train(args.model, args.instance_name, 'data/votes.tfrecord', 'data/votes.tfrecord',
+train(args.model, args.instance_name, 'data/train.tfrecord', 'data/valid.tfrecord',
       hparams={'batch_size': 100}, config=config, eval_every_n=args.eval_every_n)

@@ -1,8 +1,10 @@
 import argparse
 import collections
+import itertools
 import json
 import logging
 import os
+import random
 import tensorflow as tf
 
 def _int64_feature(value):
@@ -40,6 +42,7 @@ def line_reader(filename, limit=None):
             x = eval(line.strip())
             yield x
 
+
 def sponsor_member_party(x):
     sponsor_party = x['bill'].get('sponsor_party', 'unknown')
     member_party = x['member'].get('most_recent_party', 'unknown')
@@ -53,24 +56,45 @@ def count_party_alignment(datafile):
         print k, v
 
 
+def get_all_bills(py_examples):
+    bills = set()
+    for x in py_examples:
+        bills.update([x['bill']['id']])
+
+    return bills
+
+
+def partition(x, train=0.7, test=0.2, valid=0.1):
+    random.shuffle(x)
+    N_train = int(train*len(x))
+    N_valid = int(test*len(x))
+    return x[0:N_train], x[N_train:(N_train+N_valid)], x[(N_train+N_valid):]
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--train", default='data/votes.train.dat')
-    parser.add_argument("--valid", default='data/votes.valid.dat')
-    parser.add_argument("--test", default='data/votes.test.dat')
+    parser.add_argument("--data", default="data/votes.dat")
     parser.add_argument("--outdir", '-o', default='data')
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
-    for f in (args.train, args.valid, args.test):
-        if not os.path.exists(f):
-            logging.warning("File %s does not exist.", f)
-            continue
-        out = os.path.splitext(f)[0]+'.tfrecord'
-        create_tfrecord(line_reader(f), out)
-        logging.info("Created TFRecord @ %s", out)
+    logging.basicConfig(level=logging.INFO)
+    if not os.path.exists(args.outdir):
+        os.makedirs(args.outdir)
+
+    logging.info("Finding all bill ids...")
+    bill_ids = list(get_all_bills(line_reader(args.data)))
+    logging.info("Partitioning...")
+    train, valid, test = partition(bill_ids)
+    logging.info("...DONE")
+    for name, ids in (('train', train), ('valid', valid), ('test', test)):
+        out = os.path.join(args.outdir, '%s.tfrecord' % name)
+        logging.info("Creating TFRecord @ %s...", out)
+        create_tfrecord(itertools.ifilter(lambda x: x['bill']['id'] in ids, line_reader(args.data)), out)
+        logging.info("...DONE")
+
 
 if __name__ == "__main__":
     main()
