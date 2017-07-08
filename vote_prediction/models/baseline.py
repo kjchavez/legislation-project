@@ -30,7 +30,7 @@ def model_fn(features, labels, mode, params):  # config, model_dir):
         elif mode == ModeKeys.EVAL:
             loss = zero_one_loss(tf.to_int64(party_match), labels)
 
-        outputs = {'predict': tf.estimator.export.RegressionOutput(tf.to_float(predictions))}
+        outputs = {tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY: tf.estimator.export.PredictOutput({'aye': predictions})}
         return EstimatorSpec(mode, predictions=predictions, loss=loss, train_op=train_op,
                              export_outputs=outputs)
 

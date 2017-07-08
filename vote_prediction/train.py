@@ -1,6 +1,7 @@
 import tensorflow as tf
 import argparse
 import os
+import yaml
 
 import models
 import input_pipeline
@@ -25,6 +26,13 @@ def train(model_name, instance_name, train_filepattern, valid_filepattern, hpara
     # TODO(kjchavez): If the instance_name for the model already exists, hyperparams must match or
     # be loaded.
     model_dir = os.path.join('results', '%s-%s' % (model_name, instance_name))
+    if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
+
+    hparams_file = os.path.join(model_dir, "hparams.yaml")
+    with open(hparams_file, 'w') as fp:
+        yaml.dump(hparams, fp)
+
     estimator = tf.estimator.Estimator(model_fn, model_dir=model_dir,
                                        config=config, params=hparams)
 

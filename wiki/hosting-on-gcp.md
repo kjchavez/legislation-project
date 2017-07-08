@@ -82,6 +82,8 @@ where the input data file for me looked like this:
 { "temp": 1.0  }
 ```
 
+> WARNING: Do not try to reuse a version name with different savedmodel data. Just create a new version.
+
 ## Hosting the rest on App Engine
 
 * Need to install app-engine-python. At least to have a python app.

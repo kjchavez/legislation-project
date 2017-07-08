@@ -39,3 +39,17 @@ A somewhat cynical, partisan, rule-based model would be...
 > If the sponsor and voter are in the same party, then predict they vote `aye`.
 
 With this we get ~75% accuracy. So this is the very base, the floor.
+
+## Upload model
+
+```bash
+gsutil cp -r export/1234565 gs://[DESTINATION_BUCKET_NAME]/vote-prediction-naive/$VERSION_NAME
+```
+
+Add it in GCP console.
+
+Test to make sure it worked:
+
+```
+gcloud ml-engine predict --model vote_prediction --version $VERSION_NAME --json-instances test/request.json
+```

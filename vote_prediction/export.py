@@ -23,8 +23,11 @@ def export(model_name, instance_name, hparams, exportdir='export'):
     model_fn = get_model_fn_by_name(model_name)
     estimator = tf.estimator.Estimator(model_fn, model_dir=model_dir,
                                        params=hparams)
-    fn = tf.estimator.export.build_parsing_serving_input_receiver_fn(
-            input_pipeline.feature_spec(),
+    # TODO(kjchavez): Replace this with something generic, based on the feature spec from
+    # input_pipeline.py
+    fn = tf.estimator.export.build_raw_serving_input_receiver_fn(
+        {"sponsor_party": tf.placeholder(tf.string, shape=(1,)),
+         "member_party": tf.placeholder(tf.string, shape=(1,)) },
             default_batch_size=None
     )
 
@@ -47,5 +50,4 @@ def parse_args():
 
 args = parse_args()
 hparams = load_hparams(args.model, args.instance_name)
-print hparams
 export(args.model, args.instance_name, hparams=hparams)
