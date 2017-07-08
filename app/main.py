@@ -2,9 +2,19 @@ from flask import Flask
 from flask import jsonify
 from flask import render_template
 from flask import request
+import logging
+import os
+import yaml
 
 import cloudml_client
 
+import requests
+import requests_toolbelt.adapters.appengine
+requests_toolbelt.adapters.appengine.monkeypatch()
+
+import congressapi
+import api_keys
+congressapi.set_api_key(api_keys.PROPUBLICA_CONGRESS_API_KEY)
 
 def _format_for_html(tokens):
     # TODO(kjchavez): This is not the nicest format. We should probably do
@@ -23,6 +33,7 @@ def get_cloud_sample(temp):
 
 app = Flask(__name__)
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+app.debug = True
 
 @app.route("/")
 def hello():
@@ -37,3 +48,11 @@ def generate():
     # TODO(kjchavez): Need vocabulary!
     result['text'] = sample
     return jsonify(result)
+
+@app.route("/recent_bills")
+def recent_bills():
+    bills = congressapi.recent_bills(congressapi.current_congress(),
+                                     congressapi.Chamber.HOUSE,
+                                     congressapi.BillAction.INTRODUCED)
+    logging.info(str(bills))
+    return jsonify(bills)

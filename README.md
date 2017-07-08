@@ -153,9 +153,14 @@ Honestly, it's awful right now. Just followed the intro D3 tutorial. But just yo
 It should all be contained in the app/ directory. pip install all requirements.txt in a virtual env
 
 ```
-virtualenv env 
+virtualenv --python=/usr/local/lib/python2.7.13/bin/python env 
 source env/bin/activate
 pip install -t lib -r requirements.txt
 ```
 
 The `-t lib` is important!
+
+NOTE:
+Because I was using Ubuntu 14.04, I followed instructions here: http://mbless.de/blog/2016/01/09/upgrade-to-python-2711-on-ubuntu-1404-lts.html to upgrade to python 2.7.13 (when using virtualenv, so that requests library works properly).
+
+To use congressapi, you'll have to add an api_keys.py file with `PROPUBLICA_CONGRESS_API_KEY` constant.
