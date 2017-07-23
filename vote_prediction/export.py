@@ -23,13 +23,11 @@ def export(model_name, instance_name, hparams, exportdir='export'):
     model_fn = get_model_fn_by_name(model_name)
     estimator = tf.estimator.Estimator(model_fn, model_dir=model_dir,
                                        params=hparams)
-    # TODO(kjchavez): Replace this with something generic, based on the feature spec from
-    # input_pipeline.py
-    fn = tf.estimator.export.build_raw_serving_input_receiver_fn(
-        {"sponsor_party": tf.placeholder(tf.string, shape=(1,)),
-         "member_party": tf.placeholder(tf.string, shape=(1,)) },
-            default_batch_size=None
-    )
+    feat = {key : tf.placeholder(value.dtype, shape=(1,))
+         for key, value in input_pipeline.feature_spec().items()}
+    # Remove the label from the feature spec.
+    feat.pop('Decision')
+    fn = tf.estimator.export.build_raw_serving_input_receiver_fn(feat, default_batch_size=None)
 
     # NOTE: This will fail unless we provide 'export_outputs' in the EstimatorSpec
     estimator.export_savedmodel(exportdir, fn)

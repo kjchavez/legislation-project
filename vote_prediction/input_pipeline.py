@@ -1,10 +1,19 @@
 import tensorflow as tf
 
 def feature_spec():
+    """ Example input.
+
+    {'VoterParty': 'republican', 'BillTitle': u'Making appropriations for the Departments of Labor,
+    Health and Human Services, and Education, and related agencies, for the fiscal year ending September
+    30, 1997, and for other purposes.', 'VoterState': u'CO', 'SponsorParty': 'republican', 'BillId':
+        u'hr3755-104', 'VoterChamber': u'sen', 'VoterAge': 73, 'Decision': 'Aye'}
+    """
     return {
-      'sponsor_party': tf.FixedLenFeature([], tf.string),
-      'member_party': tf.FixedLenFeature([], tf.string),
-      'voted_aye': tf.FixedLenFeature([], tf.int64)
+      'SponsorParty': tf.FixedLenFeature([], tf.string),
+      'VoterParty': tf.FixedLenFeature([], tf.string),
+      'VoterState': tf.FixedLenFeature([], tf.string),
+      'VoterAge': tf.FixedLenFeature([], tf.int64),
+      'Decision': tf.FixedLenFeature([], tf.string)
     }
 
 def read_and_decode(filename_queue):
@@ -14,6 +23,8 @@ def read_and_decode(filename_queue):
       serialized_example,
       features=feature_spec())
 
+  # Be careful with consistency here..
+  features['Decision'] = tf.to_int32(tf.equal(features.pop('Decision'), 'Aye'))
   return features
 
 def inputs(filepattern, batch_size, num_epochs=None):
@@ -44,13 +55,14 @@ def inputs(filepattern, batch_size, num_epochs=None):
         # Ensures a minimum amount of shuffling of examples.
         min_after_dequeue=1000)
 
-    labels = features.pop('voted_aye')
+    labels = features.pop('Decision')
+
     return features, labels
 
 
 if __name__ == "__main__":
     # Run sanity check.
-    X, y = inputs("data/votes.tfrecord", 2, num_epochs=1)
+    X, y = inputs("data/train.tfrecord", 2, num_epochs=1)
     init_op = tf.group(tf.global_variables_initializer(),
                        tf.local_variables_initializer())
     with tf.Session() as sess:

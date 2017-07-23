@@ -1,5 +1,6 @@
 import tensorflow as tf
 import argparse
+import logging
 import os
 import yaml
 
@@ -7,6 +8,7 @@ import models
 import input_pipeline
 
 tf.logging.set_verbosity(tf.logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
 
 def get_model_fn_by_name(name):
@@ -27,11 +29,20 @@ def train(model_name, instance_name, train_filepattern, valid_filepattern, hpara
     # be loaded.
     model_dir = os.path.join('results', '%s-%s' % (model_name, instance_name))
     if not os.path.exists(model_dir):
+        logging.info("Creating model directory: %s", model_dir)
         os.makedirs(model_dir)
 
     hparams_file = os.path.join(model_dir, "hparams.yaml")
+    if os.path.exists(hparams_file):
+        if hparams is not None:
+            logging.warning("Overriding hyperparameters with those from checkpoint.")
+
+        with open(hparams_file) as fp:
+            hparams = yaml.load(fp)
+
     with open(hparams_file, 'w') as fp:
         yaml.dump(hparams, fp)
+        logging.info("Saved hyperparameters to %s", hparams_file)
 
     estimator = tf.estimator.Estimator(model_fn, model_dir=model_dir,
                                        config=config, params=hparams)
@@ -58,6 +69,9 @@ def parse_args():
 
 args = parse_args()
 config = tf.estimator.RunConfig()
+if args.hparams is None:
+    logging.info("No hparams specified, will attempt to load from checkpoint.")
+
 with open(args.hparams) as fp:
     hparams = yaml.load(fp)
 

@@ -14,10 +14,10 @@ def zero_one_loss(pred, target):
 
 # Satisfies model function signature for Estimator API.
 def model_fn(features, labels, mode, params):  # config, model_dir):
-    """ Predicts true if 'sponsor_party' == 'member_party'. """
+    """ Predicts true if 'SponsorParty' == 'VoterParty'. """
     with tf.device('/cpu:0'):
-        party_match = tf.equal(features['member_party'], features['sponsor_party'])
-        predictions = tf.to_int64(party_match)
+        party_match = tf.equal(features['VoterParty'], features['SponsorParty'])
+        predictions = tf.to_int32(party_match)
 
         loss = None
         train_op = None
@@ -28,7 +28,7 @@ def model_fn(features, labels, mode, params):  # config, model_dir):
             train_op = tf.assign_add(step, 1)
 
         elif mode == ModeKeys.EVAL:
-            loss = zero_one_loss(tf.to_int64(party_match), labels)
+            loss = zero_one_loss(tf.to_int32(party_match), labels)
 
         outputs = {tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY: tf.estimator.export.PredictOutput({'aye': predictions})}
         return EstimatorSpec(mode, predictions=predictions, loss=loss, train_op=train_op,

@@ -12,24 +12,26 @@ def model_fn(features, labels, mode, params):  # config, model_dir):
         if len(features[key].shape) == 1:
             features[key] = tf.expand_dims(features[key], -1)
 
-    labels = tf.expand_dims(labels, -1)
     for key in features:
         print features[key].shape
     sponsor = tf.feature_column.categorical_column_with_vocabulary_list(
-            key='sponsor_party', vocabulary_list=('Unknown', 'Democrat', 'Republican'), default_value=0)
+        key='SponsorParty', vocabulary_list=('UNK', 'democrat', 'republican'), default_value=0)
     member = tf.feature_column.categorical_column_with_vocabulary_list(
-            key='member_party', vocabulary_list=('Unknown', 'Democrat', 'Republican'), default_value=0)
+        key='VoterParty', vocabulary_list=('UNK', 'democrat', 'republican'), default_value=0)
     sponsor_member = tf.feature_column.crossed_column([sponsor, member], 9)
+    age = tf.feature_column.numeric_column('VoterAge')
+    bucketed_age = tf.feature_column.bucketized_column(age, boundaries=[35, 45, 55, 65, 75, 85])
 
     logits = tf.feature_column.linear_model(
                 features,
-                [sponsor, member, sponsor_member])
+                [sponsor, member, sponsor_member, bucketed_age])
     logits.set_shape((params['batch_size'],1))
-    predictions = tf.greater_equal(logits, 0.5)
+    predictions = tf.greater_equal(logits, 0.0)
     loss = None
     train_op = None
     eval_metrics = {}
     if mode == ModeKeys.TRAIN or mode == ModeKeys.EVAL:
+        labels = tf.expand_dims(labels, -1)
         loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.to_float(labels),
                                                        logits=logits)
         loss = tf.reduce_mean(loss)
