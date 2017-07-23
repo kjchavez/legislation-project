@@ -54,5 +54,18 @@ def recent_bills():
     bills = congressapi.recent_bills(congressapi.current_congress(),
                                      congressapi.Chamber.HOUSE,
                                      congressapi.BillAction.INTRODUCED)
-    logging.info(str(bills))
     return jsonify(bills)
+
+@app.route("/active_bills")
+def active_bills():
+    bills = congressapi.recent_bills(congressapi.current_congress(),
+                                     congressapi.Chamber.HOUSE,
+                                     congressapi.BillAction.INTRODUCED)
+    return render_template('active-bills.html', bills=bills['bills'])
+
+@app.route("/predictions/<bill_id>")
+def predictions(bill_id):
+    # Can we get congress number from bill id?
+    bill_id, congress_num = bill_id.split('-')
+    bill = congressapi.congress.bill(int(congress_num), bill_id)
+    return jsonify(bill)

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-8 col-md-offset-2">
+    <h1>Recent Bills</h1>
+    <table class="table">
+      <tr>
+        <th>ID</th>
+        <th>Title</th>
+      </tr>
+      {% for bill in bills %}
+      <tr>
+        <td>{{ bill.number }}</td>
+        <td><a href="predictions/{{bill.bill_id}}">{{ bill.title }}</a></td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+
+{% endblock %}
