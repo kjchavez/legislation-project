@@ -12,7 +12,7 @@
       {% for bill in bills %}
       <tr>
         <td>{{ bill.number }}</td>
-        <td><a href="predictions/{{bill.bill_id}}">{{ bill.title }}</a></td>
+        <td><a href="bill/{{bill.bill_id}}">{{ bill.title }}</a></td>
       </tr>
       {% endfor %}
     </table>

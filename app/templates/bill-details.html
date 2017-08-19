@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-8 col-md-offset-2">
+    <h1>{{bill.number}}<br/><small>{{bill.title}}</small></h1>
+    <p>{{bill.summary}} </p>
+    <h3>Sponsorship</h3>
+    <table class="table">
+      <tr>
+        <td>Primary Sponsor</td>
+        <td>{{ bill.sponsor }}</td>
+      </tr><tr>
+        <td>Party</td>
+        <td>{{ bill.sponsor_party}}</td>
+      </tr><tr>
+        <td>State</td>
+        <td>{{ bill.sponsor_state }}</td>
+      </tr>
+    </table>
+    <h3>Recent Actions</h3>
+    <table class="table">
+      <tr>
+        <th>Date</th>
+        <th>Description</th>
+      </tr>
+      {% for action in bill.actions %}
+      <tr>
+        <td>{{ action.datetime }}</td>
+        <td>{{ action.description }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+
+{% endblock %}

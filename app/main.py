@@ -59,9 +59,15 @@ def recent_bills():
 @app.route("/active_bills")
 def active_bills():
     bills = congressapi.recent_bills(congressapi.current_congress(),
-                                     congressapi.Chamber.HOUSE,
-                                     congressapi.BillAction.INTRODUCED)
+                                     congressapi.Chamber.BOTH,
+                                     "active")
     return render_template('active-bills.html', bills=bills['bills'])
+
+@app.route("/bill/<bill_id>")
+def bill_details(bill_id):
+    bill_id, congress_num = bill_id.split('-')
+    bill = congressapi.congress.bill(int(congress_num), bill_id)
+    return render_template("bill-details.html", bill=bill)
 
 @app.route("/predictions/<bill_id>")
 def predictions(bill_id):
