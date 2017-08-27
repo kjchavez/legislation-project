@@ -4,6 +4,9 @@ import tensorflow as tf
 EstimatorSpec = tf.estimator.EstimatorSpec
 ModeKeys = tf.estimator.ModeKeys
 
+STATES = [ 'AK', 'AL', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY' ]
+
+
 # QUESTION. Why wouldn't we just use the pre-built estimator?
 # TODO(kjchavez): Consider changing the expectations of train.py to accept an estimator rather than
 # an model_function
@@ -21,16 +24,23 @@ def model_fn(features, labels, mode, params):  # config, model_dir):
     sponsor_member = tf.feature_column.crossed_column([sponsor, member], 9)
     age = tf.feature_column.numeric_column('VoterAge')
     bucketed_age = tf.feature_column.bucketized_column(age, boundaries=[35, 45, 55, 65, 75, 85])
+    state_categorical = tf.feature_column.categorical_column_with_vocabulary_list('VoterState',
+                                                                                  STATES)
+    # state_embedding = tf.feature_column.embedding_column(state_catagorical, ...)
 
-    logits = tf.feature_column.linear_model(
+    x = tf.feature_column.linear_model(
                 features,
-                [sponsor, member, sponsor_member, bucketed_age])
+                [sponsor, member, sponsor_member, bucketed_age, state_categorical])
+    x.set_shape((params['batch_size'],1))
+
+    hidden = tf.layers.dense(x, 64, activation=tf.nn.relu)
+    logits = tf.layers.dense(hidden, 1)
+
     predictions = tf.greater_equal(logits, 0.0)
     loss = None
     train_op = None
     eval_metrics = {}
     if mode == ModeKeys.TRAIN or mode == ModeKeys.EVAL:
-        # logits.set_shape((params['batch_size'],1))
         labels = tf.expand_dims(labels, -1)
         loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.to_float(labels),
                                                        logits=logits)

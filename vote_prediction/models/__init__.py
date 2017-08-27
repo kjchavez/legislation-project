@@ -4,6 +4,7 @@ import sys
 # == START MODELS ==
 import baseline
 import linear
+import dnn
 # == END MODELS ==
 
 def get_model_fn_by_name(name):

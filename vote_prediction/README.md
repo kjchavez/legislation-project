@@ -48,6 +48,14 @@ gsutil cp -r export/1234565 gs://[DESTINATION_BUCKET_NAME]/vote-prediction-naive
 
 Add it in GCP console.
 
+> WARNING: This may not work via the web interface if using an older version of Tensorflow.
+
+If that's the case, try creating the version from the command line.
+
+```bash
+gcloud ml-engine versions create $VERSION_NAME --model=$MODEL_NAME --origin=gs://$DESTINATION_BUCKET_NAME/vote-prediction-naive/$VERSION_NAME --runtime-version=1.2
+```
+
 Test to make sure it worked:
 
 ```

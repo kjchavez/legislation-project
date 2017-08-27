@@ -1,2 +1,2 @@
-{"sponsor_party": "Republican", "member_party": "Republican"}
-{"sponsor_party": "Democrat", "member_party": "Republican"}
+{"SponsorParty": "Republican", "VoterParty": "Republican", "VoterState": "MA", "VoterAge": 35}
+{"SponsorParty": "Democrat", "VoterParty": "Republican", "VoterState": "MA", "VoterAge": 90}
