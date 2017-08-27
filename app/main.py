@@ -38,7 +38,11 @@ app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.debug = True
 
 @app.route("/")
-def hello():
+def home():
+    return render_template('home.html')
+
+@app.route("/language")
+def language_of_legislation():
     return render_template('language-model.html')
 
 @app.route("/generate")

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-8 col-md-offset-2 starter-template">
+        <h2 class="text-center">Welcome</h2>
+        <p>
+        Welcome. There is a wealth of data about the proceedings of Congress and it's all part of the public record.
+        The U.S. Legislation Project is an effort to make this data more informative and actionable for the private citizen.
+        We create and provide interactive access to machine learning models that explore many aspects of congressional activities.
+        </p>
+        <div class="alert alert-info" role="alert"><strong>Heads up!</strong> This is an ongoing personal project and may change rapidly and drastically without notice.</div>
+
+	<h2 class="text-center">The Data</h2>
+        <p> The primary data source is the bulk raw data from GovTrack <a href=https://www.govtrack.us/developers/data>https://www.govtrack.us/developers/data</a>. The service for downloading the bulk data is now deprecated. The data sources, however, are still available at github:unitedstates/congress-legislators and github:unitedstates/congress.</p>
+        <p>
+        We can't provide a full description of all the data provided by GovTrack, but some of the pieces that we use most heavily are:
+        <ul>
+          <li>Full text and revisions of proposed bills, resolutions, etc.</li>
+          <li>Roll call vote results</li>
+          <li>Congress member contact info and biographical data</li>
+        </ul>
+        </p>
+
+      <h2 class="text-center">Explore</h2>
+      <div class="row">
+        <!-- Links to projects! -->
+        <div class="col-lg-3 col-md-4 col-sm-6 text-center">
+          <div class="project-link">
+            <h3><a class="glyphicon glyphicon-font" aria-hidden="true" href="/language"></a></h3>
+            <h3>Language of Legislation</h3>
+            <p class="text-muted">Get a sense of the language used in Congress with a language model trained on proposed bills.</p>
+          </div>
+        </div>
+        <div class="col-lg-3 col-md-4 col-sm-6 text-center">
+          <div class="project-link">
+            <h3><a class="glyphicon glyphicon-ok-circle" aria-hidden="true" href="/active_bills"></a></h3>
+            <h3>Vote Prediction</h3>
+            <p class="text-muted">Predict how a congress member will vote on an active bill.</p>
+          </div>
+        </div>
+      </div>
+    </div> <!-- /.col -->
+  </div> <!-- /.row -->
+{% endblock %}
