@@ -34,4 +34,25 @@
   </div>
 </div>
 
+{% if bill.active %}
+<h2>Vote Prediction</h2>
+<div class="row">
+  {% for example in examples %}
+  <div class="col-md-3 col-sm-6">
+  <div class="panel panel-success">
+    <div class="panel-heading text-right">Prediction: <strong>{% if example.predict_aye %}Aye{% else %}Nay{% endif %}</strong></div>
+    <table class="table">
+      {% for name, value in example.items() if not name == "predict_aye" %}
+      <tr>
+        <td><b>{{ name }}</b></td>
+        <td>{{ value }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
 {% endblock %}

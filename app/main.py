@@ -16,6 +16,8 @@ import congressapi
 import api_keys
 congressapi.set_api_key(api_keys.PROPUBLICA_CONGRESS_API_KEY)
 
+import vote_util
+
 def _format_for_html(tokens):
     # TODO(kjchavez): This is not the nicest format. We should probably do
     # things like: ( a ) -> (a)
@@ -45,17 +47,10 @@ def generate():
     print "Params data:", request.args
     temp = float(request.args.get("temp", 1.0))
     sample = get_cloud_sample(temp)
-    # TODO(kjchavez): Need vocabulary!
     result['text'] = sample
     return jsonify(result)
 
-@app.route("/recent_bills")
-def recent_bills():
-    bills = congressapi.recent_bills(congressapi.current_congress(),
-                                     congressapi.Chamber.HOUSE,
-                                     congressapi.BillAction.INTRODUCED)
-    return jsonify(bills)
-
+# TODO(kjchavez): Support multiple pages of recent bills.
 @app.route("/active_bills")
 def active_bills():
     bills = congressapi.recent_bills(congressapi.current_congress(),
@@ -67,11 +62,20 @@ def active_bills():
 def bill_details(bill_id):
     bill_id, congress_num = bill_id.split('-')
     bill = congressapi.congress.bill(int(congress_num), bill_id)
-    return render_template("bill-details.html", bill=bill)
+    votes = list(vote_util.get_input_data(bill))
+    predictions = cloudml_client.predict_json('us-legislation-data', 'vote_prediction', votes)
+    _add_predictions(votes, predictions)
+    return render_template("bill-details.html", bill=bill, examples=votes)
+
+def _add_predictions(votes, preds):
+    for i, pred in enumerate(preds):
+        votes[i]['predict_aye'] = pred['aye'][0]
 
 @app.route("/predictions/<bill_id>")
 def predictions(bill_id):
-    # Can we get congress number from bill id?
     bill_id, congress_num = bill_id.split('-')
     bill = congressapi.congress.bill(int(congress_num), bill_id)
-    return jsonify(bill)
+    votes = list(vote_util.get_input_data(bill))
+    predictions = cloudml_client.predict_json('us-legislation-data', 'vote_prediction', votes)
+    _add_predictions(votes, predictions)
+    return jsonify({'bill': bill, 'votes': votes})

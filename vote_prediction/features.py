@@ -10,10 +10,10 @@ def _most_recent_term(member_data):
 class VoterState(Feature):
     default = "UNK"
     def f_train(self, x):
-        return _most_recent_term(x['member'])['state']
+        return str(_most_recent_term(x['member'])['state'])
 
     def f_infer(self, x):
-        return x['voter']['state']
+        return str(x['voter']['state'])
 
 class VoterAge(Feature):
     default = 0
@@ -85,10 +85,10 @@ class Decision(Feature):
         return x['decision']
 
 FEATURES = [
-    BillId(),
-    BillTitle(),
+    #BillId(),
+    #BillTitle(),
     SponsorParty(),
-    VoterChamber(),
+    #VoterChamber(),
     VoterParty(),
     VoterAge(),
     VoterState(),
