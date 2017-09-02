@@ -1,4 +1,5 @@
 import tensorflow as tf
+import util
 
 # Some aliases
 EstimatorSpec = tf.estimator.EstimatorSpec
@@ -24,7 +25,8 @@ def model_fn(features, labels, mode, params):  # config, model_dir):
 
     logits = tf.feature_column.linear_model(
                 features,
-                [sponsor, member, sponsor_member, bucketed_age])
+                [sponsor, member, sponsor_member, bucketed_age],
+                weight_collections=["linear-weights"])
     predictions = tf.greater_equal(logits, 0.0)
     loss = None
     train_op = None
@@ -35,13 +37,25 @@ def model_fn(features, labels, mode, params):  # config, model_dir):
         loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.to_float(labels),
                                                        logits=logits)
         loss = tf.reduce_mean(loss)
+        for w in tf.get_collection("linear-weights"):
+            print "ADDING L2 REG"
+            loss += params['l2_reg']*tf.nn.l2_loss(w)
+
         tf.summary.scalar("loss", loss)
         eval_metrics['accuracy'] = tf.metrics.accuracy(tf.equal(labels, 1), predictions)
+        eval_metrics['precision'] = tf.metrics.precision(labels, predictions)
+        eval_metrics['recall'] = tf.metrics.recall(labels, predictions)
 
 
     if mode == ModeKeys.TRAIN:
         optimizer = tf.train.GradientDescentOptimizer(params['learning_rate'])
-        train_op = optimizer.minimize(loss, global_step=tf.train.get_or_create_global_step())
+        grads_and_vars = optimizer.compute_gradients(loss)
+        train_op = optimizer.apply_gradients(grads_and_vars,
+                                             global_step=tf.train.get_or_create_global_step())
+        # Add summary of weights and gradients.
+        for grad, var in grads_and_vars:
+            tf.summary.histogram(var.name, var)
+            tf.summary.histogram(var.name + '/gradient', grad)
 
 
     outputs = {tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:

@@ -81,12 +81,13 @@ class BillId(Feature):
         return x['bill']['bill_id']
 
 class Decision(Feature):
+    default = 'Nay'
     def f_train(self, x):
         return x['decision']
 
 FEATURES = [
     #BillId(),
-    #BillTitle(),
+    BillTitle(),
     SponsorParty(),
     #VoterChamber(),
     VoterParty(),

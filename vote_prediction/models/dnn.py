@@ -1,4 +1,5 @@
 import tensorflow as tf
+import util
 
 # Some aliases
 EstimatorSpec = tf.estimator.EstimatorSpec
@@ -7,9 +8,6 @@ ModeKeys = tf.estimator.ModeKeys
 STATES = [ 'AK', 'AL', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY' ]
 
 
-# QUESTION. Why wouldn't we just use the pre-built estimator?
-# TODO(kjchavez): Consider changing the expectations of train.py to accept an estimator rather than
-# an model_function
 def model_fn(features, labels, mode, params):  # config, model_dir):
     for key in features:
         if len(features[key].shape) == 1:
@@ -26,12 +24,26 @@ def model_fn(features, labels, mode, params):  # config, model_dir):
     bucketed_age = tf.feature_column.bucketized_column(age, boundaries=[35, 45, 55, 65, 75, 85])
     state_categorical = tf.feature_column.categorical_column_with_vocabulary_list('VoterState',
                                                                                   STATES)
+    indicator = tf.feature_column.indicator_column
     # state_embedding = tf.feature_column.embedding_column(state_catagorical, ...)
 
-    x = tf.feature_column.linear_model(
-                features,
-                [sponsor, member, sponsor_member, bucketed_age, state_categorical])
-    x.set_shape((params['batch_size'],1))
+    x = tf.feature_column.input_layer(
+                    features,
+                    [indicator(sponsor), indicator(member), indicator(sponsor_member), bucketed_age,
+                     indicator(state_categorical)])
+
+    # Word embedding
+    initializer = tf.random_uniform_initializer(-0.1, 0.1)
+    with tf.device("/cpu:0"):
+        embedding_matrix = tf.get_variable("word_embeddings",
+                                           (params['vocab_size'],
+                                            params['embedding_dim']),
+                                           initializer=initializer
+                                          )
+        title_embedding = tf.reduce_mean(tf.nn.embedding_lookup(embedding_matrix, features['BillTitle']),
+                                     axis=1)
+
+    x = tf.concat([x, title_embedding], 1)
 
     hidden = tf.layers.dense(x, 64, activation=tf.nn.relu)
     logits = tf.layers.dense(hidden, 1)
@@ -46,12 +58,11 @@ def model_fn(features, labels, mode, params):  # config, model_dir):
                                                        logits=logits)
         loss = tf.reduce_mean(loss)
         tf.summary.scalar("loss", loss)
-        eval_metrics['accuracy'] = tf.metrics.accuracy(tf.equal(labels, 1), predictions)
-
+        util.add_binary_classification_metrics(predictions, labels, eval_metrics)
 
     if mode == ModeKeys.TRAIN:
-        optimizer = tf.train.GradientDescentOptimizer(params['learning_rate'])
-        train_op = optimizer.minimize(loss, global_step=tf.train.get_or_create_global_step())
+        optimizer = tf.train.AdamOptimizer(learning_rate=params['learning_rate'])
+        train_op = util.optimize_and_monitor(optimizer, loss)
 
 
     outputs = {tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:

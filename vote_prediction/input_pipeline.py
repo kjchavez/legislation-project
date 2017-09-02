@@ -1,4 +1,12 @@
 import tensorflow as tf
+import features
+
+TF_TYPE = {}
+TF_TYPE[int] = tf.int64
+TF_TYPE[str] = tf.string
+TF_TYPE[unicode] = tf.string
+def _tf_type(py_value):
+    return TF_TYPE.get(type(py_value))
 
 def feature_spec():
     """ Example input.
@@ -8,6 +16,15 @@ def feature_spec():
     30, 1997, and for other purposes.', 'VoterState': u'CO', 'SponsorParty': 'republican', 'BillId':
         u'hr3755-104', 'VoterChamber': u'sen', 'VoterAge': 73, 'Decision': 'Aye'}
     """
+    f = {}
+    for feat in features.FEATURES + features.LABELS:
+        f[feat.__class__.__name__] = tf.FixedLenFeature([], _tf_type(feat.default))
+
+
+    f['BillTitle'] = tf.FixedLenSequenceFeature(dtype=tf.int64, shape=(), allow_missing=True)
+    return f
+
+"""
     return {
       'SponsorParty': tf.FixedLenFeature([], tf.string),
       'VoterParty': tf.FixedLenFeature([], tf.string),
@@ -15,6 +32,7 @@ def feature_spec():
       'VoterAge': tf.FixedLenFeature([], tf.int64),
       'Decision': tf.FixedLenFeature([], tf.string)
     }
+"""
 
 def read_and_decode(filename_queue):
   reader = tf.TFRecordReader()
@@ -49,11 +67,10 @@ def inputs(filepattern, batch_size, num_epochs=None):
     features_dict = read_and_decode(filename_queue)
 
     # We run this in two threads to avoid being a bottleneck.
-    features = tf.train.shuffle_batch(
+    features = tf.train.batch(
         features_dict, batch_size=batch_size, num_threads=2,
         capacity=1000 + 3 * batch_size,
-        # Ensures a minimum amount of shuffling of examples.
-        min_after_dequeue=1000)
+        dynamic_pad=True)
 
     labels = features.pop('Decision')
 
@@ -62,9 +79,10 @@ def inputs(filepattern, batch_size, num_epochs=None):
 
 if __name__ == "__main__":
     # Run sanity check.
-    X, y = inputs("data/train.tfrecord", 2, num_epochs=1)
+    X, y = inputs("mini-data/train.tfrecord", 2, num_epochs=1)
     init_op = tf.group(tf.global_variables_initializer(),
-                       tf.local_variables_initializer())
+                       tf.local_variables_initializer(),
+                       tf.tables_initializer())
     with tf.Session() as sess:
         sess.run(init_op)
         # Start input enqueue threads.

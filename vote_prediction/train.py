@@ -2,6 +2,7 @@ import tensorflow as tf
 import argparse
 import logging
 import os
+from os.path import join
 import yaml
 
 import models
@@ -27,12 +28,12 @@ def train(model_name, instance_name, train_filepattern, valid_filepattern, hpara
 
     # TODO(kjchavez): If the instance_name for the model already exists, hyperparams must match or
     # be loaded.
-    model_dir = os.path.join('results', '%s-%s' % (model_name, instance_name))
+    model_dir = join('results', '%s-%s' % (model_name, instance_name))
     if not os.path.exists(model_dir):
         logging.info("Creating model directory: %s", model_dir)
         os.makedirs(model_dir)
 
-    hparams_file = os.path.join(model_dir, "hparams.yaml")
+    hparams_file = join(model_dir, "hparams.yaml")
     if os.path.exists(hparams_file):
         if hparams is not None:
             logging.warning("Overriding hyperparameters with those from checkpoint.")
@@ -59,6 +60,8 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', '-m', required=True,
                         help="which model to use")
+    parser.add_argument('--datadir', '-d', default="data",
+                        help="directory holding train/dev/test data")
     parser.add_argument('--instance_name', '-i', required=True,
                         help="name for this instance of the model")
     parser.add_argument('--eval_every_n', type=int, default=100000,
@@ -75,5 +78,6 @@ if args.hparams is None:
 with open(args.hparams) as fp:
     hparams = yaml.load(fp)
 
-train(args.model, args.instance_name, 'data/train.tfrecord', 'data/valid.tfrecord',
+train(args.model, args.instance_name, join(args.datadir, 'train.tfrecord'),
+      join(args.datadir, 'valid.tfrecord'),
       hparams=hparams, config=config, eval_every_n=args.eval_every_n)
