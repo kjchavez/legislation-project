@@ -1,3 +1,6 @@
+"""
+    DEPRECATED! Use train.py with --export_every=N
+"""
 import tensorflow as tf
 import argparse
 import os
@@ -18,13 +21,17 @@ def get_model_dir(model_name, instance_name):
     return os.path.join('results', '%s-%s' % (model_name, instance_name))
 
 
-def export(model_name, instance_name, hparams, exportdir='export'):
+def export(model_name, instance_name, hparams, exportdir):
     model_dir = os.path.join('results', '%s-%s' % (model_name, instance_name))
     model_fn = get_model_fn_by_name(model_name)
     estimator = tf.estimator.Estimator(model_fn, model_dir=model_dir,
                                        params=hparams)
+
+    # shape=(1,) is a placeholder for the batch size that will be replaced by
+    # None in build_raw_serving_input_receiver_fn.
     feat = {key : tf.placeholder(value.dtype, shape=(1,))
          for key, value in input_pipeline.feature_spec().items()}
+
     # Remove the label from the feature spec.
     feat.pop('Decision')
     fn = tf.estimator.export.build_raw_serving_input_receiver_fn(feat, default_batch_size=None)
@@ -48,4 +55,5 @@ def parse_args():
 
 args = parse_args()
 hparams = load_hparams(args.model, args.instance_name)
-export(args.model, args.instance_name, hparams=hparams)
+exportdir = os.path.join('export', '%s-%s' % (args.model, args.instance_name))
+export(args.model, args.instance_name, hparams=hparams, exportdir=exportdir)

@@ -40,8 +40,9 @@ def model_fn(features, labels, mode, params):  # config, model_dir):
                                             params['embedding_dim']),
                                            initializer=initializer
                                           )
-        title_embedding = tf.reduce_mean(tf.nn.embedding_lookup(embedding_matrix, features['BillTitle']),
-                                     axis=1)
+        title_embedding = tf.reduce_mean(tf.nn.embedding_lookup(embedding_matrix,
+                                                                features['BillTitle']),
+                                         axis=[1], keep_dims=False)
 
     x = tf.concat([x, title_embedding], 1)
 

@@ -50,10 +50,13 @@ def train(model_name, instance_name, train_filepattern, valid_filepattern, hpara
 
     # TODO(kjchavez): If we have a SessionRunHook equivalent of ValidationMonitor, then use that
     # instead.
+    exportdir = join('export', '%s-%s' % (model_name, instance_name))
+    input_receiver_fn = tf.estimator.export.build_raw_serving_input_receiver_fn(valid_input_fn()[0])
     while True:
         estimator.train(train_input_fn, steps=eval_every_n)
         metrics = estimator.evaluate(valid_input_fn)
         print(metrics)
+        estimator.export_savedmodel(exportdir, input_receiver_fn)
 
 
 def parse_args():
