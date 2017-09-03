@@ -51,7 +51,10 @@ def train(model_name, instance_name, train_filepattern, valid_filepattern, hpara
     # TODO(kjchavez): If we have a SessionRunHook equivalent of ValidationMonitor, then use that
     # instead.
     exportdir = join('export', '%s-%s' % (model_name, instance_name))
-    input_receiver_fn = tf.estimator.export.build_raw_serving_input_receiver_fn(valid_input_fn()[0])
+    features = valid_input_fn()[0]
+    # But! Let's replace BillTitle with a string!
+    features["BillTitle"] = tf.placeholder(tf.string, shape=(1,))
+    input_receiver_fn = tf.estimator.export.build_raw_serving_input_receiver_fn(features)
     while True:
         estimator.train(train_input_fn, steps=eval_every_n)
         metrics = estimator.evaluate(valid_input_fn)
@@ -83,6 +86,9 @@ if args.hparams is None:
 
 with open(args.hparams) as fp:
     hparams = yaml.load(fp)
+
+vocab_filename = join(args.datadir, 'vocab.txt')
+hparams['vocab_filename'] = vocab_filename
 
 train(args.model, args.instance_name, join(args.datadir, 'train.tfrecord'),
       join(args.datadir, 'valid.tfrecord'),
