@@ -18,7 +18,7 @@ def get_model_fn_by_name(name):
 
 
 def train(model_name, instance_name, train_filepattern, valid_filepattern, hparams, config=None,
-          eval_every_n=10000):
+          eval_every_n=10000, export=True):
     train_input_fn = lambda: input_pipeline.inputs(train_filepattern, hparams['batch_size'],
                                                    num_epochs=None)
     valid_input_fn = lambda: input_pipeline.inputs(valid_filepattern, hparams['batch_size'],
@@ -56,7 +56,8 @@ def train(model_name, instance_name, train_filepattern, valid_filepattern, hpara
         estimator.train(train_input_fn, steps=eval_every_n)
         metrics = estimator.evaluate(valid_input_fn)
         print(metrics)
-        estimator.export_savedmodel(exportdir, input_receiver_fn)
+        if export:
+            estimator.export_savedmodel(exportdir, input_receiver_fn)
 
 
 def parse_args():
@@ -71,6 +72,8 @@ def parse_args():
                         help='number of train steps between evals')
     parser.add_argument('--hparams', default=None,
                         help='yaml file of hyperparameters')
+    parser.add_argument('--export_savedmodel', type=bool, default=True,
+                        help="disable export of savedmodel at every eval")
     return parser.parse_args()
 
 args = parse_args()
@@ -83,4 +86,5 @@ with open(args.hparams) as fp:
 
 train(args.model, args.instance_name, join(args.datadir, 'train.tfrecord'),
       join(args.datadir, 'valid.tfrecord'),
-      hparams=hparams, config=config, eval_every_n=args.eval_every_n)
+      hparams=hparams, config=config, eval_every_n=args.eval_every_n,
+      export=args.export_savedmodel)
