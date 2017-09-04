@@ -70,19 +70,11 @@ def transform_example(x, tokenizer=None, text_fields=[]):
     return x
 
 
-def get_all_bills(py_examples):
-    bills = set()
-    for x in py_examples:
-        bills.update([x['bill_id']])
-
-    return bills
-
-
-def partition(x, train=0.7, test=0.2, valid=0.1):
+def partition(x, train=0.7, valid=0.1, test=0.2):
     x = list(x)
     random.shuffle(x)
     N_train = int(train*len(x))
-    N_valid = int(test*len(x))
+    N_valid = int(valid*len(x))
     return x[0:N_train], x[N_train:(N_train+N_valid)], x[(N_train+N_valid):]
 
 def attribute_filters(dataset, attr, train=0.7, valid=0.1, test=0.2):
@@ -102,8 +94,19 @@ def attribute_filters(dataset, attr, train=0.7, valid=0.1, test=0.2):
     for x in dataset:
         attrs.update([x.get(attr, None)])
 
-    filters = [lambda x: x.get(attr, None) in s
-               for s in partition(attrs, train=train, test=test, valid=valid)]
+    parts = partition(attrs, train=train, valid=valid, test=test)
+    for p in parts:
+        print "== PARTITITION =="
+        print "Length:", len(p)
+        print "Fingerprint:", sum(hash(i) % int(1e6) for i in p)
+
+    # A for loop is tempting, but tricky here. Remember, in Python, assignment
+    # only makes a new reference to the same underlying object -- and lambdas don't have the best
+    # capture syntax. So you can easily end up with all functions referring to the same partition.
+    filters = []
+    filters.append(lambda x: x.get(attr) in parts[0])
+    filters.append(lambda x: x.get(attr) in parts[1])
+    filters.append(lambda x: x.get(attr) in parts[2])
     return tuple(filters)
 
 
@@ -153,7 +156,7 @@ def main():
         os.makedirs(args.outdir)
 
     logging.info("Partitioning...")
-    train, valid, test = attribute_filters(line_reader(args.data), 'bill_id')
+    train, valid, test = attribute_filters(line_reader(args.data), 'BillId')
     logging.info("...DONE")
     tokenizer = None
     if args.text_fields:
@@ -168,11 +171,11 @@ def main():
                 print >> fp, token
         logging.info("...DONE")
 
+    transform = lambda x: transform_example(x, tokenizer=tokenizer,
+                                    text_fields=args.text_fields)
     for name, filter_fn in (('train', train), ('valid', valid), ('test', test)):
         out = os.path.join(args.outdir, '%s.tfrecord' % name)
         logging.info("Creating TFRecord @ %s...", out)
-        transform = lambda x: transform_example(x, tokenizer=tokenizer,
-                                        text_fields=args.text_fields)
         create_tfrecord(itertools.imap(transform, itertools.ifilter(filter_fn,
                                                                     line_reader(args.data))), out)
         logging.info("...DONE")
