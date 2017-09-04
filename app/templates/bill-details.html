@@ -39,7 +39,11 @@
 <div class="row">
   {% for example in examples %}
   <div class="col-md-3 col-sm-6">
+  {% if example.predict_aye %}
   <div class="panel panel-success">
+  {% else %}
+  <div class="panel panel-danger">
+  {% endif %}
     <div class="panel-heading text-right">Prediction: <strong>{% if example.predict_aye %}Aye{% else %}Nay{% endif %}</strong></div>
     <table class="table">
       {% for name, value in example.items() if not name == "predict_aye" %}
