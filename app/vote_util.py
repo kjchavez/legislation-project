@@ -37,8 +37,45 @@ the Congress API live, since the data may not have been integrated into our loca
 """
 
 import congressapi
+import api_keys
 import features
 import data_util
+from google.appengine.api import urlfetch
+import logging
+import json
+import functools
+
+# When looking at the landing page for a bill, we will load (and make predictions)
+# on at most this many congress members.
+MAX_MEMBERS_TO_LOAD = 10
+
+def _get_congress_api_urls(urls):
+    """ Retrieves data in parallel from ProPublica Congress API. """
+    results = []
+    def handle_result(rpc):
+        result = rpc.get_result()
+        if result.status_code == 200:
+            results.append(json.loads(result.content))
+            logging.info('Added json data')
+        else:
+            logging.info('Error in fetch.')
+
+    rpcs = []
+    logging.info("Fetching data for %d urls", len(urls))
+    for i, uri in enumerate(urls):
+        rpc = urlfetch.create_rpc()
+        rpc.callback = functools.partial(handle_result, rpc)
+        urlfetch.make_fetch_call(rpc, uri, headers={'X-API-Key':
+                                                    api_keys.PROPUBLICA_CONGRESS_API_KEY})
+        rpcs.append(rpc)
+
+
+    for rpc in rpcs:
+        rpc.wait()
+
+    logging.info("Data fetch complete.")
+    return results
+
 
 def _get_chamber(bill):
     if bill['bill_type'].startswith('h'):
@@ -55,8 +92,9 @@ def get_voting_members(bill):
     chamber = _get_chamber(bill)
     members = congressapi.members(_get_congress(bill), chamber)[0]['members']
 
+    # Note that member['api_uri'] has URLs such as
+    # 'https://api.propublica.org/congress/v1/members/A000055.json'
     return members
-    # return [congressapi.member(m['id']) for m in members]
 
 def _normalize_party(party):
     if party == 'R':
@@ -90,7 +128,7 @@ def _split(data):
         yield {'bill' : data['bill'], 'voter': voter, 'sponsor' : data['sponsor']}
 
 def get_input_data(bill):
-    """ Returns inputs for the vote_prediction model given the bill JOSN returned by ProPublica
+    """ Returns inputs for the vote_prediction model given the bill JSON returned by ProPublica
     /recent_bills endpoint. """
     for x in _split(expand(bill)):
         yield data_util.extract_infer_features(x, features.FEATURES)

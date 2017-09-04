@@ -1,5 +1,6 @@
 from datetime import datetime
 from data_util import Feature
+import string
 
 def _most_recent_party(member_data):
     return member_data['terms'][-1]['party']
@@ -68,10 +69,10 @@ class SponsorParty(Feature):
 class BillTitle(Feature):
     default = 'UNK'
     def f_train(self, x):
-        return x['bill']['official_title']
+        return str(x['bill']['official_title']).translate(None, string.punctuation).lower()
 
     def f_infer(self, x):
-        return x['bill']['title']
+        return str(x['bill']['title']).translate(None, string.punctuation).lower()
 
 class BillId(Feature):
     def f_train(self, x):

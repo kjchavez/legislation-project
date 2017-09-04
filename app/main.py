@@ -74,6 +74,7 @@ def bill_details(bill_id):
 def _add_predictions(votes, preds):
     for i, pred in enumerate(preds):
         votes[i]['predict_aye'] = pred['aye'][0]
+        votes[i]['prob'] = pred['probability'][0]
 
 @app.route("/predictions/<bill_id>")
 def predictions(bill_id):
