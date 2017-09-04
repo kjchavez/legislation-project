@@ -1,0 +1,5 @@
+Flask==0.12.1
+google-api-python-client==1.6.2
+congressapi==0.4
+requests>=2.10.0
+sparqlwrapper>=1.8.0

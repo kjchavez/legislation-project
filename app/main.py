@@ -5,6 +5,7 @@ from flask import request
 import logging
 import os
 import yaml
+import wikidata
 
 import cloudml_client
 
@@ -53,6 +54,15 @@ def generate():
     sample = get_cloud_sample(temp)
     result['text'] = sample
     return jsonify(result)
+
+@app.route("/member/<member_id>")
+def member(member_id):
+    member = congressapi.member(member_id)
+    if not member:
+        return "Not found."
+    mid = member['google_entity_id']
+    results = wikidata.lookup(mid)
+    return jsonify(results)
 
 # TODO(kjchavez): Support multiple pages of recent bills.
 @app.route("/active_bills")

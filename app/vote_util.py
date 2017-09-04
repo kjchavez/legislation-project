@@ -43,6 +43,7 @@ import data_util
 from google.appengine.api import urlfetch
 import logging
 import json
+import pprint
 import functools
 
 # When looking at the landing page for a bill, we will load (and make predictions)
@@ -131,5 +132,6 @@ def get_input_data(bill):
     """ Returns inputs for the vote_prediction model given the bill JSON returned by ProPublica
     /recent_bills endpoint. """
     for x in _split(expand(bill)):
+        # logging.info(pprint.pformat(x))
         yield data_util.extract_infer_features(x, features.FEATURES)
 
