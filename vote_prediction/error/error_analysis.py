@@ -12,30 +12,25 @@ import itertools
 import tensorflow as tf
 
 
-def _collect_batch_errors(batch_output, batch_examples, collect_errors_fn):
-    results = []
-    batch_size = len(batch_output.values()[0])
-    for i in xrange(batch_size):
-        output = dict((key, batch_output[key][i]) for key in batch_output.keys())
-        example = dict((key, batch_examples[key][i]) for key in batch_examples.keys())
-        tags = collect_errors_fn(output, example)
-        if tags:
-            results.append({'example': example, 'errors' : tags})
-
-    return results
-
-
 # Turn this into a bit of a framework.
 class ErrorAnalysis(object):
-    def __init__(self, error_tags, batch_generator):
+    def __init__(self, error_tags, example_generator_fn=None, batch_generator_fn=None, batch_size=32):
         """
         Args:
             error_tags: dict of string to function: X, Y -> bool. Function should determine if
                         response Y on example X is an error of that type.
-            batch_generator: yields a dictionary with batched features/label on each iteration.
+            batch_generator_fn: fn yielding dictionaries with batched features/label on each iteration.
+            example_generator_fn: fn yielding dictionary with single features/label on each iteration.
         """
+        if (not example_generator_fn and not batch_generator_fn) or \
+           (example_generator_fn and batch_generator_fn):
+            raise ValueError("Most provide exactly one of 'example_iter' or 'batch_iter'")
+
         self.error_tags = error_tags
-        self.batch_generator = batch_generator
+        if batch_generator_fn:
+            self.batch_generator_fn = batch_generator_fn
+        else:
+            self.batch_generator_fn = lambda: _batch_generator(example_generator_fn(), batch_size=batch_size)
 
     def collect_errors(self, output, example):
         tags = []
@@ -44,8 +39,8 @@ class ErrorAnalysis(object):
                 tags.append(tag)
         return tags
 
-    def analyze(self, model_dir, outfile):
-        if os.path.exists(outfile):
+    def analyze(self, model_dir, outfile=None):
+        if outfile and os.path.exists(outfile):
             logging.info("Clearing file: %s", outfile)
             with open(outfile, 'w') as fp:
                 pass
@@ -72,7 +67,8 @@ class ErrorAnalysis(object):
             # 4. So input transformations on dev should == test == inference.
             # 5. But we evaluate on the dev set frequently, so we may want to "cache" some of that
             #    preprocessing. Fine. But be careful to keep it aligned.
-            for batch in self.batch_generator:
+            all_errors = []
+            for batch in self.batch_generator_fn():
                 feed = {}
                 for name, tensor_info in signature_def.inputs.items():
                     feed[tensor_info.name] = batch[name]
@@ -82,17 +78,45 @@ class ErrorAnalysis(object):
                     outputs[name] = tensor_info.name
 
                 output_val = sess.run(outputs, feed_dict=feed)
-                with open(outfile, 'a') as fp:
-                    for x in _collect_batch_errors(output_val, batch,
-                                                   self.collect_errors):
-                        print(json.dumps(x), file=fp)
+                errors = _collect_batch_errors(output_val, batch,
+                                               self.collect_errors)
+                all_errors.extend(errors)
+                if outfile:
+                    with open(outfile, 'a') as fp:
+                        for x in errors:
+                            print(_to_json_string(x), file=fp)
+
+            return all_errors
+
+def _make_json_friendly(x):
+    for key, value in x.items():
+        if isinstance(value, np.ndarray):
+            x[key] = value.tolist()
+        elif isinstance(value, dict):
+            _make_json_friendly(x[key])
+
+def _to_json_string(x):
+    _make_json_friendly(x)
+    return json.dumps(x)
+
+def _collect_batch_errors(batch_output, batch_examples, collect_errors_fn):
+    results = []
+    batch_size = len(batch_output.values()[0])
+    for i in xrange(batch_size):
+        output = dict((key, batch_output[key][i]) for key in batch_output.keys())
+        example = dict((key, batch_examples[key][i]) for key in batch_examples.keys())
+        tags = collect_errors_fn(output, example)
+        if tags:
+            results.append({'example': example, 'errors' : tags, 'output': output})
+
+    return results
 
 
 def take(iterable, n):
     return list(itertools.islice(iterable, n))
 
 
-def batch_generator(example_iter, batch_size):
+def _batch_generator(example_iter, batch_size):
     while True:
         examples = take(example_iter, batch_size)
         if not examples:
@@ -105,13 +129,8 @@ def batch_generator(example_iter, batch_size):
         yield batch
 
 
-def batch_generator_from_file(filename, batch_size):
-    def eval_line_generator():
-        with open(filename) as fp:
-            for line in fp:
-                yield eval(line)
-
-    return batch_generator(eval_line_generator(), batch_size)
+def pred_error(x, y):
+    return bool(y['aye']) != bool(x['Decision'] == 'Aye')
 
 
 def parse_args():
@@ -122,13 +141,16 @@ def parse_args():
     parser.add_argument("--batch_size", type=int, default=64)
     return parser.parse_args()
 
-def pred_error(x, y):
-    return bool(y['aye']) != bool(x['Decision'] == 'Aye')
 
 def main():
     args = parse_args()
-    err = ErrorAnalysis({'prediction_error': pred_error}, batch_generator_from_file(args.examples,
-                                                                                    args.batch_size))
+    def example_generator():
+        with open(args.examples) as fp:
+            for line in fp:
+                yield eval(line)
+
+    err = ErrorAnalysis({'prediction_error': pred_error}, example_generator_fn=example_generator,
+                        batch_size=args.batch_size)
     err.analyze(args.model, args.outfile)
 
 
