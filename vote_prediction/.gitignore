@@ -2,3 +2,4 @@ data/
 mini-data/
 export/
 results/
+*.dat

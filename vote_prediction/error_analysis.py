@@ -1,4 +1,8 @@
 # Collect sample errors on a dev set using a SavedModel.
+# Note, this is well suited for a Jupyter Notebook.
+# Hint, hint, future self.
+from __future__ import print_function
+
 import argparse
 import numpy as np
 import logging
@@ -10,6 +14,7 @@ def parse_args():
     parser.add_argument("--model", required=True, help="Saved model directory.")
     parser.add_argument("--examples", required=True, help="TFRecord with examples.")
     parser.add_argument("--outfile", default="errors.dat")
+    parser.add_argument("--batch_size", type=int, default=64)
     return parser.parse_args()
 
 def collect_errors(output, example):
@@ -50,6 +55,19 @@ def main():
         print("="*80)
         print(signature_def)
         print("="*80)
+
+        # In generating the batch data, we may need to apply some kind of transformation
+        # to the dev data set -- it may not be in the same format as inference time.
+        #
+        # I can really only see one way to get in this situation
+        #
+        # 1. You want the test set to be representative of "inference" time data distribution.
+        # 2. So the input format should probably be the same.
+        # 3. The dev set should be from the same distribution as the test set.
+        # 4. So input transformations on dev should == test == inference.
+        # 5. But we evaluate on the dev set frequently, so we may want to "cache" some of that
+        #    preprocessing. Fine. But be careful to keep it aligned.
+
         # |batch| should be a dictionary containing a batch of Examples.
         # Fake batch example.
         batch = {'VoterAge': [25, 26],
@@ -61,7 +79,6 @@ def main():
 
         feed = {}
         for name, tensor_info in signature_def.inputs.items():
-            print(name)
             feed[tensor_info.name] = batch[name]
 
         outputs = {}
@@ -71,7 +88,7 @@ def main():
         output_val = sess.run(outputs, feed_dict=feed)
         with open(args.outfile, 'a') as fp:
             for x in collect_batch_errors(output_val, batch):
-                print >> fp, x
+                print(x, file=fp)
 
 
 if __name__ == "__main__":
