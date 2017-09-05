@@ -150,15 +150,11 @@ def vote_data_generator(database, batch_size=100):
     votes = database.votes.find({'bill.type': {'$in': ['hr', 'hjres', 's', 'sjres']},
                            'category': 'passage'})
     votes.batch_size(batch_size)
-    is_first = True
     for member_id, bill_id, vote_id, decision in get_all_votes(votes):
         member = LegislatorCache.get_member(database, member_id)
         bill = BillCache.get_bill(database, bill_id)
         sponsor = _bill_sponsor(database, bill)
         x = {'member': member, 'bill': bill, 'sponsor': sponsor,'decision': decision}
-        if is_first:
-            logging.info("Example data point:\n%s", pprint.pformat(recursive_keys(x)))
-            is_first = False
         yield x
 
 
@@ -166,6 +162,8 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--database_name", '-d', default="congress")
     parser.add_argument("--mongodb_uri", default='mongodb://localhost:27017/')
+    parser.add_argument("--print_sample", action="store_true",
+                        help="If true, prints 1 data point and quits.")
     parser.add_argument("--output", default='data/votes.dat')
     parser.add_argument("--nmax", type=int, default=-1)
     return parser.parse_args()
@@ -177,6 +175,11 @@ def main():
     db = client[args.database_name]
 
     generator = vote_data_generator(db)
+    if args.print_sample:
+        example = next(generator)
+        pprint.pprint(recursive_keys(example))
+        return
+
     logging.basicConfig(level=logging.INFO)
     process_data(generator, FEATURES+LABELS,
                  args.output, max_elem=args.nmax)
