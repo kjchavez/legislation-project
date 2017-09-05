@@ -137,8 +137,10 @@ def recursive_keys(x):
     for key in x:
         if isinstance(x[key], dict):
             keys[key] = recursive_keys(x[key])
+        elif isinstance(x[key], str) or isinstance(x[key], unicode):
+            keys[key] = x[key][0:10] + ("..." if len(x[key]) > 10 else "")
         else:
-            keys[key] = {}
+            keys[key] = str(type(x[key]))
 
     return keys
 
