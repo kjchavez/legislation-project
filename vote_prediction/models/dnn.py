@@ -98,18 +98,13 @@ def model_fn(features, labels, mode, params, config):
         with tf.name_scope("error_analysis"):
             # NOTE(kjchavez): To save disk space, we would ideally like to only save a sample of the
             # dev set errors. This can probably be folded into the graph computation.
-            #
-            # add_summary = tf.random_uniform(shape=()) < params.get('error_sample_rate', 0.5)
-            # error_mask = predictions['aye'] != labels
-            # masked_errors = age[error_mask]
-            # tf.cond(add_summary, true_fn=lambda: tf.summary.tensor_summary("age", features['VoterAge']),
-            #         false_fn=lambda: tf.constant(""))
             tf.summary.tensor_summary('prediction', predictions['aye'],
                                       collections=["ErrorAnalysis"])
             tf.summary.tensor_summary('is_error', tf.equal(labels,
                                                            tf.to_int32(predictions['aye'])),
                                      collections=["ErrorAnalysis"])
 
+            tf.summary.tensor_summary('label', labels, collections=["ErrorAnalysis"])
             for name, tensor in features.items():
                 tf.summary.tensor_summary(name, tensor, collections=["ErrorAnalysis"])
 
@@ -122,6 +117,9 @@ def model_fn(features, labels, mode, params, config):
                                                             save_steps=1))
 
     if mode == ModeKeys.TRAIN:
+        global_step = tf.train.get_or_create_global_step()
+        learning_rate = tf.train.exponential_decay(params['learning_rate'], global_step,
+                                                   8000, 0.96, staircase=True)
         optimizer = tf.train.AdamOptimizer(learning_rate=params['learning_rate'])
         train_op = util.optimize_and_monitor(optimizer, loss)
 
