@@ -68,7 +68,7 @@ def model_fn(features, labels, mode, params):  # config, model_dir):
 
     predictions = {}
     predictions['aye'] = tf.greater_equal(logits, 0.0)
-    print("logits shape", logits.get_shape())
+
     # Note there is only 1 logit per example, so no need to use softmax() function.
     predictions['probability'] = tf.sigmoid(logits)
     loss = None
@@ -81,6 +81,16 @@ def model_fn(features, labels, mode, params):  # config, model_dir):
         loss = tf.reduce_mean(loss)
         tf.summary.scalar("loss", loss)
         util.add_binary_classification_metrics(predictions['aye'], labels, eval_metrics)
+
+        # Also want to collect samples of errors for manual error analysis.
+        with tf.name_scope("error_analysis"):
+            add_summary = tf.random_uniform(shape=()) < params.get('error_sample_rate', 0.5)
+            error_mask = predictions['aye'] != labels
+            # Can I do this?
+            #masked_errors = age[error_mask]
+            tf.summary.tensor_summary("age", features['VoterAge'])
+            #tf.cond(add_summary, true_fn=lambda: tf.summary.tensor_summary("age", features['VoterAge']),
+            #        false_fn=lambda: tf.constant(""))
 
     if mode == ModeKeys.TRAIN:
         optimizer = tf.train.AdamOptimizer(learning_rate=params['learning_rate'])
