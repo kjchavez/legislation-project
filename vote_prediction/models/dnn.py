@@ -58,9 +58,18 @@ def model_fn(features, labels, mode, params, config):
                                             params['embedding_dim']),
                                            initializer=initializer
                                           )
-        title_embedding = tf.reduce_mean(tf.nn.embedding_lookup(embedding_matrix,
-                                                                features['BillTitle']),
+        # PAD id, as assigned by keras Tokenizer. Note that this is *entirely inconsistent* with the
+        # token assigned by the lookup table at inference time. Which is HUGE problem.
+        # TODO(kjchavez): Fix this before serving a new model!
+        weights = tf.expand_dims(tf.to_float(tf.not_equal(features['BillTitle'], 0)), -1)
+        print ("Weights shape:", weights.get_shape())
+        scale = tf.reciprocal(tf.to_float(tf.count_nonzero(weights, 1)))
+        print("Scale schape:", scale.get_shape(), scale.dtype)
+        # Short titles will just be equivalent to the PAD embedding.. that seems incorrect.
+        title_embedding = scale * tf.reduce_sum(tf.nn.embedding_lookup(embedding_matrix,
+                                                                features['BillTitle'])*weights,
                                          axis=[1], keep_dims=False)
+        print("Title embedding shape:", title_embedding.get_shape())
 
     x = tf.concat([x, title_embedding], 1)
 

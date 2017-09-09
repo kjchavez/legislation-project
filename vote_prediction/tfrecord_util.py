@@ -167,8 +167,11 @@ def main():
                                   args.text_fields)
         tokenizer.fit_on_texts(it)
         with open(os.path.join(args.outdir, 'vocab.txt'), 'w') as fp:
-            for token, idx in tokenizer.word_index.items():
-                print >> fp, token
+            print >> fp, "UNK"
+            words = sorted([(idx, token) for token, idx in tokenizer.word_index.items()])
+            for word in words:
+                print >> fp, word
+
         logging.info("...DONE")
 
     transform = lambda x: transform_example(x, tokenizer=tokenizer,
