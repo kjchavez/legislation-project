@@ -73,8 +73,10 @@ def model_fn(features, labels, mode, params, config):
 
     x = tf.concat([x, title_embedding], 1)
 
-    hidden = tf.layers.dense(x, 64, activation=tf.nn.relu)
-    logits = tf.layers.dense(hidden, 1)
+    hidden = tf.layers.dense(x, 64, activation=tf.nn.relu,
+                             kernel_regularizer=tf.contrib.layers.l2_regularizer(params['l2_reg']))
+    logits = tf.layers.dense(hidden, 1,
+                             kernel_regularizer=tf.contrib.layers.l2_regularizer(params['l2_reg']))
 
     predictions = {}
     predictions['aye'] = tf.greater_equal(logits, 0.0)
@@ -90,6 +92,7 @@ def model_fn(features, labels, mode, params, config):
         loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.to_float(labels),
                                                        logits=logits)
         loss = tf.reduce_mean(loss)
+        loss += sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
         tf.summary.scalar("loss", loss)
         util.add_binary_classification_metrics(predictions['aye'], labels, eval_metrics)
 
@@ -100,8 +103,8 @@ def model_fn(features, labels, mode, params, config):
             # dev set errors. This can probably be folded into the graph computation.
             tf.summary.tensor_summary('prediction', predictions['aye'],
                                       collections=["ErrorAnalysis"])
-            tf.summary.tensor_summary('is_error', tf.equal(labels,
-                                                           tf.to_int32(predictions['aye'])),
+            tf.summary.tensor_summary('is_error', tf.not_equal(labels,
+                                                               tf.to_int32(predictions['aye'])),
                                      collections=["ErrorAnalysis"])
 
             tf.summary.tensor_summary('label', labels, collections=["ErrorAnalysis"])
