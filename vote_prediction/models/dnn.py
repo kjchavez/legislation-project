@@ -1,4 +1,5 @@
 import tensorflow as tf
+import os
 import util
 
 # Some aliases
@@ -9,7 +10,7 @@ STATES = [ 'AK', 'AL', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID
 PAD = "<PAD>"
 
 
-def model_fn(features, labels, mode, params):  # config, model_dir):
+def model_fn(features, labels, mode, params, config):
     # The initializer for this table will take care of saving/restoring the "asset".
     # Note: it is not straightforward to roll your own "read from stashed assets" mechanism,
     # and the documentation is scarce.
@@ -74,6 +75,7 @@ def model_fn(features, labels, mode, params):  # config, model_dir):
     loss = None
     train_op = None
     eval_metrics = {}
+    eval_hooks = []
     if mode == ModeKeys.TRAIN or mode == ModeKeys.EVAL:
         labels = tf.expand_dims(labels, -1)
         loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.to_float(labels),
@@ -82,15 +84,33 @@ def model_fn(features, labels, mode, params):  # config, model_dir):
         tf.summary.scalar("loss", loss)
         util.add_binary_classification_metrics(predictions['aye'], labels, eval_metrics)
 
+    if mode == ModeKeys.EVAL:
         # Also want to collect samples of errors for manual error analysis.
         with tf.name_scope("error_analysis"):
-            add_summary = tf.random_uniform(shape=()) < params.get('error_sample_rate', 0.5)
-            error_mask = predictions['aye'] != labels
-            # Can I do this?
-            #masked_errors = age[error_mask]
-            tf.summary.tensor_summary("age", features['VoterAge'])
-            #tf.cond(add_summary, true_fn=lambda: tf.summary.tensor_summary("age", features['VoterAge']),
-            #        false_fn=lambda: tf.constant(""))
+            # NOTE(kjchavez): To save disk space, we would ideally like to only save a sample of the
+            # dev set errors. This can probably be folded into the graph computation.
+            #
+            # add_summary = tf.random_uniform(shape=()) < params.get('error_sample_rate', 0.5)
+            # error_mask = predictions['aye'] != labels
+            # masked_errors = age[error_mask]
+            # tf.cond(add_summary, true_fn=lambda: tf.summary.tensor_summary("age", features['VoterAge']),
+            #         false_fn=lambda: tf.constant(""))
+            tf.summary.tensor_summary('prediction', predictions['aye'],
+                                      collections=["ErrorAnalysis"])
+            tf.summary.tensor_summary('is_error', tf.equal(labels,
+                                                           tf.to_int32(predictions['aye'])),
+                                     collections=["ErrorAnalysis"])
+
+            for name, tensor in features.items():
+                tf.summary.tensor_summary(name, tensor, collections=["ErrorAnalysis"])
+
+            if params['save_eval']:
+                print("Adding save every step hook!")
+                output_dir=os.path.join(config.model_dir, params.get('error_analysis_dir',
+                                                                     'error_analysis'))
+                eval_hooks.append(tf.train.SummarySaverHook(summary_op=tf.summary.merge(tf.get_collection("ErrorAnalysis")),
+                                                            output_dir=output_dir,
+                                                            save_steps=1))
 
     if mode == ModeKeys.TRAIN:
         optimizer = tf.train.AdamOptimizer(learning_rate=params['learning_rate'])
@@ -99,7 +119,11 @@ def model_fn(features, labels, mode, params):  # config, model_dir):
 
     outputs = {tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
                tf.estimator.export.PredictOutput(predictions)}
+
+    scaffold=None
     return EstimatorSpec(mode, predictions=predictions, loss=loss, train_op=train_op,
+                         scaffold=scaffold,
+                         evaluation_hooks = eval_hooks,
                          export_outputs=outputs, eval_metric_ops=eval_metrics)
 
 

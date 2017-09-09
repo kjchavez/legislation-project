@@ -33,6 +33,7 @@ def read_tensors(event_filepattern, namescope="error_analysis", tag_set=None):
             for v in e.summary.value:
                 # I believe TensorFlow V1.2 doesn't populate the tag for tensor_summary ops.
                 tag = v.tag if v.tag else v.node_name
+                logging.info(tag)
                 if tag.startswith(namescope) and v.HasField('tensor'):
                     tag = os.path.basename(tag)
                     if not tag_set or tag in tag_set:
@@ -46,7 +47,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    for x in read_tensors(args.events, tag_set=("foo")):
+    for x in read_tensors(args.events):
         print(x)
 
 
