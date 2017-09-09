@@ -1,5 +1,7 @@
 # Vote Prediction
 
+> NOTE: Current state of code requires TensorFlow ahead of verion 1.3. Uses version built from head of master branch on Sept. 9, 2017.
+
 ## Task
 
 > Given a member of Congress and a legislative proposal, predict whether they vote `Aye` or not.
