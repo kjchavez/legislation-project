@@ -24,15 +24,6 @@ def feature_spec():
     f['BillTitle'] = tf.FixedLenSequenceFeature(dtype=tf.int64, shape=(), allow_missing=True)
     return f
 
-"""
-    return {
-      'SponsorParty': tf.FixedLenFeature([], tf.string),
-      'VoterParty': tf.FixedLenFeature([], tf.string),
-      'VoterState': tf.FixedLenFeature([], tf.string),
-      'VoterAge': tf.FixedLenFeature([], tf.int64),
-      'Decision': tf.FixedLenFeature([], tf.string)
-    }
-"""
 
 def read_and_decode(filename_queue):
   reader = tf.TFRecordReader()
