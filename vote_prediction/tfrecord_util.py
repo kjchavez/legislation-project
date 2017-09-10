@@ -169,7 +169,7 @@ def main():
         with open(os.path.join(args.outdir, 'vocab.txt'), 'w') as fp:
             print >> fp, "UNK"
             words = sorted([(idx, token) for token, idx in tokenizer.word_index.items()])
-            for word in words:
+            for idx, word in words:
                 print >> fp, word
 
         logging.info("...DONE")

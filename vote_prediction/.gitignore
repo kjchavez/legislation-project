@@ -3,3 +3,4 @@ mini-data/
 export/
 results/
 *.dat
+*.csv
