@@ -7,7 +7,7 @@ import os
 import tensorflow as tf
 
 
-def read_tensors(event_filepattern, namescope="error_analysis", tag_set=None):
+def read_batch_tensors(event_filepattern, namescope="error_analysis", tag_set=None):
     """ Yields dictionaries of numpy arrays from saved events.
 
     Args:
@@ -39,6 +39,21 @@ def read_tensors(event_filepattern, namescope="error_analysis", tag_set=None):
                     if not tag_set or tag in tag_set:
                         x[tag] = tf.make_ndarray(v.tensor)
             yield x
+
+
+def _unbatch(batch_iterator):
+    """ Slices elements of |batch_iterator| along the 0th axis, yielding
+        one at a time.
+    """
+    for batch in batch_iterator:
+        for idx in xrange(len(batch.values()[0])):
+            yield dict((k, batch[k][idx]) for k in batch.keys())
+
+
+def read_tensors(event_filepattern, namescope="error_analysis", tag_set=None):
+    """ Returns iterator over single example at a time. """
+    return _unbatch(read_batch_tensors(event_filepattern, namescope=namescope, tag_set=tag_set))
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
