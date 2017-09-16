@@ -3,6 +3,7 @@ import argparse
 import logging
 import os
 from os.path import join
+import shutil
 import yaml
 
 import models
@@ -10,6 +11,8 @@ import input_pipeline
 
 tf.logging.set_verbosity(tf.logging.INFO)
 logging.basicConfig(level=logging.INFO)
+
+SAVED_HPARAMS_FILENAME = "hparams.yaml"
 
 
 def get_model_fn_by_name(name):
@@ -33,14 +36,7 @@ def train(model_name, instance_name, train_filepattern, valid_filepattern, hpara
         logging.info("Creating model directory: %s", model_dir)
         os.makedirs(model_dir)
 
-    hparams_file = join(model_dir, "hparams.yaml")
-    if os.path.exists(hparams_file):
-        if hparams is not None:
-            logging.warning("Overriding hyperparameters with those from checkpoint.")
-
-        with open(hparams_file) as fp:
-            hparams = yaml.load(fp)
-
+    hparams_file = join(model_dir, SAVED_HPARAMS_FILENAME)
     with open(hparams_file, 'w') as fp:
         yaml.dump(hparams, fp)
         logging.info("Saved hyperparameters to %s", hparams_file)
@@ -71,9 +67,9 @@ def save_eval_results(model_name, instance_name, valid_filepattern, config=None,
         logging.info("Creating model directory: %s", model_dir)
         os.makedirs(model_dir)
 
-    hparams_file = join(model_dir, "hparams.yaml")
+    hparams_file = join(model_dir, SAVED_HPARAMS_FILENAME)
     if not os.path.exists(hparams_file):
-        logging.error("hparams.yaml not found")
+        logging.error("%s not found", SAVED_HPARAMS_FILENAME)
         return
 
     with open(hparams_file) as fp:
@@ -90,14 +86,36 @@ def save_eval_results(model_name, instance_name, valid_filepattern, config=None,
     metrics = estimator.evaluate(valid_input_fn, hooks=eval_hooks)
     print(metrics)
 
+def get_hparams(model_dir, hparams_file):
+    """ Loads YAML file from |model_dir| if it exists, else from |hparams_file|.
+    """
+    hparams = {}
+    saved_hparams = join(model_dir, SAVED_HPARAMS_FILENAME)
+    if os.path.exists(model_dir):
+        # Hyperparameters should be saved, so just restore them.
+        with open(saved_hparams) as fp:
+            hparams = yaml.load(fp)
+    else:
+        # Accept hparams from commandline arg.
+        if hparams_file:
+            with open(hparams_file) as fp:
+                hparams = yaml.load(fp)
+        else:
+            logging.warning("No hparams specified, is that intentional?")
+
+    return hparams
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', '-m', required=True,
                         help="which model to use")
     parser.add_argument('--datadir', '-d', default="data",
-                        help="directory holding train/dev/test data")
+                        help="directory holding train/dev/test data. " \
+                             "Assumed to have train.tfrecord and dev.tfrecord.")
     parser.add_argument('--instance_name', '-i', required=True,
                         help="name for this instance of the model")
+    parser.add_argument('--reset', '-r', action='store_true', default=False)
     parser.add_argument('--eval_every_n', type=int, default=100000,
                         help='number of train steps between evals')
     parser.add_argument('--hparams', default=None,
@@ -117,13 +135,17 @@ def main():
                           join(args.datadir, 'valid.tfrecord'), config=config)
         return
 
+    model_dir = join("results", "%s-%s" % (args.model, args.instance_name))
+    if args.reset and os.path.exists(model_dir):
+        logging.info("Force reset. Removing directory: %s", model_dir)
+        shutil.rmtree(model_dir)
 
-    if args.hparams is None:
-        logging.info("No hparams specified, will attempt to load from checkpoint.")
+    # Get the hyperparameters.
+    # TODO(kjchavez): There may be a TensorFlow idiomatic way to save and restore hyperparameters
+    # from model checkpoints. Investigate.
+    hparams = get_hparams(model_dir, args.hparams)
 
-    with open(args.hparams) as fp:
-        hparams = yaml.load(fp)
-
+    # Somewhat hacky overrides.
     vocab_filename = join(args.datadir, 'vocab.txt')
     hparams['vocab_filename'] = vocab_filename
     hparams['save_eval'] = args.save_eval
