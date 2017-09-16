@@ -64,7 +64,7 @@ def model_fn(features, labels, mode, params, config):
         weights = tf.expand_dims(tf.to_float(tf.not_equal(features['BillTitle'], 0)), -1)
         print ("Weights shape:", weights.get_shape())
         scale = tf.reciprocal(tf.to_float(tf.count_nonzero(weights, 1)))
-        print("Scale schape:", scale.get_shape(), scale.dtype)
+        print("Scale shape:", scale.get_shape(), scale.dtype)
         # Short titles will just be equivalent to the PAD embedding.. that seems incorrect.
         title_embedding = scale * tf.reduce_sum(tf.nn.embedding_lookup(embedding_matrix,
                                                                 features['BillTitle'])*weights,
@@ -125,6 +125,14 @@ def model_fn(features, labels, mode, params, config):
                                                    8000, 0.96, staircase=True)
         optimizer = tf.train.AdamOptimizer(learning_rate=params['learning_rate'])
         train_op = util.optimize_and_monitor(optimizer, loss)
+        # Let's also track train accuracy.
+        train_metrics = {}
+        util.add_binary_classification_metrics(predictions['aye'],
+                                              labels,
+                                              train_metrics)
+        tf.summary.scalar("train_acc", train_metrics['accuracy'][0])
+        train_op = tf.group(train_op, train_metrics['accuracy'][1])
+
 
 
     outputs = {tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
@@ -133,7 +141,7 @@ def model_fn(features, labels, mode, params, config):
     scaffold=None
     return EstimatorSpec(mode, predictions=predictions, loss=loss, train_op=train_op,
                          scaffold=scaffold,
-                         evaluation_hooks = eval_hooks,
+                         evaluation_hooks=eval_hooks,
                          export_outputs=outputs, eval_metric_ops=eval_metrics)
 
 
